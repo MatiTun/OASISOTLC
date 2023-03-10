@@ -1,0 +1,26 @@
+<VirtualHost *:5001>
+	serverName www.oasishoteles.otlc.mx
+	WSGIDaemonProcess back-heaven user=sistemas group=sistemas threads=5 python-home=/var/www/OASISOTLC/oasisotlc-env
+	WSGIScriptAlias / /var/www/OASISOTLC/oasisotlc.wsgi
+	WSGIApplicationGroup %{GLOBAL}
+	WSGIPassAuthorization On
+	<Directory /var/www/OASISOTLC>
+		WSGIProcessGroup OASISOTLC
+		WSGIApplicationGroup %{GLOBAL}
+		WSGIScriptReloading On
+		WSGIPassAuthorization On
+		Require all granted
+	</Directory>
+		# ServerAdmin webmaster@localhost ---
+
+		# DocumentRoot /var/www/html ---
+
+		# Available loglevels: trace8, ..., trace1, debug, info, notice, warn,
+		# error, crit, alert, emerg.
+		# It is also possible to configure the loglevel for particular
+		# modules, e.g.
+		#LogLevel info ssl:warn
+
+	ErrorLog ${APACHE_LOG_DIR}/oasis-otlc-error.log
+	CustomLog ${APACHE_LOG_DIR}/oasis-otlc-access.log combined
+</VirtualHost>
