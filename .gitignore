@@ -22,5 +22,5 @@ _mailinglist
 .idea/
 docs/_build/
 .vscode
-run.py
+# run.py
 *.csv
