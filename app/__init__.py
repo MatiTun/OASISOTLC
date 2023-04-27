@@ -7,7 +7,7 @@ app.config.from_object('configuration.DevelopmentConfig')
 
 db = SQLAlchemy(app, session_options={"autoflush": False})
 
-cors = CORS(app, resources={r'/*':{'origin':['https://oasis-tlc.com','http://localhost:8080','http://localhost:80']}})
+cors = CORS(app, resources={r'/*':{'origin':['*']}})
 
 from app.otlc.controllers.contract import otlc
 
