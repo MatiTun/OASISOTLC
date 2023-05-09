@@ -1,8 +1,9 @@
 from app import app
 from flask import request, jsonify
 from flask import Blueprint
-from ..models.contract import Contract, Movement, AccountStatusHeader, AccountStatusBody, db
+from ..models.contract import Contract, Movement, AccountStatusHeader, AccountStatusBody, Amortization,TipoMov, db
 from sqlalchemy.sql.expression import func
+from sqlalchemy import text, or_, and_
 from app.herpers.api import JsonResponse
 from datetime import datetime, timedelta
 
@@ -84,7 +85,7 @@ def contratct_information__otlc(contrato):
                 resp.append(objt)
         else:
             # datos generales
-            tc_contrato = 0
+            tc_contrato, aux_pagos_realizados, aux_interes_i, aux_eng_p = 0, 0, 0, 0
             data_contratos_g = Contract.query.with_entities(Contract.CN_CONTRATO,Contract.CN_TIPO_CONTRATO,Contract.CN_TC,Contract.CN_STATUS_CONTRATO, Contract.CN_NOMBRE,Contract.CN_APELLIDO,Contract.CN_TELEFONO,Contract.CN_EMAIL).filter(Contract.CN_CONTRATO==contrato).all()
             for item in data_contratos_g:
                 tc_contrato = item.CN_TC
@@ -94,13 +95,23 @@ def contratct_information__otlc(contrato):
                 .with_entities(func.sum(func.nvl(func.decode(Movement.MO_MONEDA,'USD',Movement.MO_TOTAL,'MXN',Movement.MO_TOTAL/tc_contrato),0)))\
                 .filter(Movement.MO_CONTRATO==contrato,Movement.MO_TIPOMOV.notin_(['COSTO CONTRATO','ENGANCHE']))\
                 .label('CN_PAGOS_REALIZADOS')
-            data_contratos_f = Contract.query.with_entities(Contract.CN_CONTRATO,Contract.CN_TIPO_CONTRATO,Contract.CN_PRECIO_VENTA, 
-            Contract.CN_COSTO_CONTRATO,Contract.CN_PRIMER_PAGO,Contract.CN_MENSUALIDAD,aux_pagos_realizados,(Contract.CN_PRECIO_VENTA-Contract.CN_ENGANCHE_IMP).label('CN_SALDO_FINANCIADO'))\
+            interes_inicial = Amortization.query.with_entities(func.sum(func.decode(func.nvl(Amortization.TA_REFINA_EFECTO,'@'),'PLAZO',0,Amortization.TA_AMORT_INT)).label('CN_INTERES_INICIAL'))\
+            .filter(Amortization.TA_EMP==15,Amortization.TA_PLAN=='B',Amortization.TA_CONTRATO==contrato).first()
+            aux_enganche_pagado = Movement.query.with_entities(func.sum(func.decode(Movement.MO_MONEDA,'USD',Movement.MO_TOTAL,'MXN',Movement.MO_TOTAL/tc_contrato)).label('ENGANCHE'))\
+            .filter(Movement.MO_CONTRATO==contrato,Movement.MO_TIPOMOV=='ENGANCHE').all()
+            if len(aux_enganche_pagado) > 0:
+                aux_eng_p = aux_enganche_pagado[0].ENGANCHE if aux_enganche_pagado[0].ENGANCHE else 0
+            if len(interes_inicial) > 0:
+                aux_interes_i = interes_inicial.CN_INTERES_INICIAL if interes_inicial.CN_INTERES_INICIAL else 0
+            data_contratos_f = Contract.query.with_entities(Contract.CN_CONTRATO,Contract.CN_TIPO_CONTRATO,Contract.CN_MONEDA,Contract.CN_PRECIO_VENTA, 
+            Contract.CN_COSTO_CONTRATO,Contract.CN_PRIMER_PAGO,Contract.CN_MENSUALIDAD,aux_pagos_realizados,((Contract.CN_PRECIO_VENTA + aux_interes_i)-Contract.CN_ENGANCHE_IMP).label('CN_SALDO_FINANCIADO'))\
             .filter(Contract.CN_CONTRATO==contrato).all()
             for item2 in data_contratos_f:
                 objt_f = item2._asdict()
-                objt_f['CN_PAGOS_REALIZADOS'] if objt_f['CN_PAGOS_REALIZADOS'] is not None else 0
-                objt_f['CN_SALDO_ACTUAL'] =  abs(objt_f['CN_SALDO_FINANCIADO'] - objt_f['CN_PAGOS_REALIZADOS'])
+                objt_f['CN_ENG_PAGADO'] = aux_eng_p
+                objt_f['CN_INTERES_INICIAL'] = aux_interes_i
+                objt_f['CN_PAGOS_REALIZADOS'] = round(objt_f['CN_PAGOS_REALIZADOS'], 4) if objt_f['CN_PAGOS_REALIZADOS'] else 0
+                objt_f['CN_SALDO_ACTUAL'] =  round((objt_f['CN_PRECIO_VENTA'] + aux_interes_i) - (objt_f['CN_PAGOS_REALIZADOS'] + objt_f['CN_ENG_PAGADO']), 4)
             resp.append({
                 "data_general": objt_g,
                 "data_financial": objt_f

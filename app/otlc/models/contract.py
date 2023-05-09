@@ -174,3 +174,46 @@ class AccountStatusBody(db.Model, BaseModel):
 
     def to_dict(self):
        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+    
+class Amortization(db.Model, BaseModel):
+    __bind_key__        = 'OTLC'
+    __tablename__       = 'TCAMORTIZACION'
+    TA_EMP              = db.Column(db.String(12))  
+    TA_PLAN             = db.Column(db.String(1))
+    TA_CONTRATO         = db.Column(db.String(20), primary_key=True)  
+    TA_DOCUMENTO        = db.Column(db.String(12))
+    TA_SECUENCIA        = db.Column(db.Numeric(12), primary_key=True)
+    TA_AMORT_FECHA      = db.Column(db.DateTime())  
+    TA_AMORT_CAP        = db.Column(db.Numeric(12,2))
+    TA_AMORT_INT        = db.Column(db.Numeric(12,2))
+    TA_AMORT_TOT        = db.Column(db.Numeric(12,2))  
+    TA_MONEDA           = db.Column(db.String(3))
+    TA_TC               = db.Column(db.Numeric(9,4))
+    TA_PAGO_FECHA       = db.Column(db.DateTime())  
+    TA_PAGO_CAP         = db.Column(db.Numeric(12,2))    
+    TA_PAGO_INT         = db.Column(db.Numeric(12,2))
+    TA_PAGO_TOT         = db.Column(db.Numeric(12,2))
+    TA_PAGO             = db.Column(db.Numeric(12,2))  
+    TA_SALDO_CAP        = db.Column(db.Numeric(12,2))  
+    TA_SALDO_INT        = db.Column(db.Numeric(12,2))  
+    TA_SALDO_TOT        = db.Column(db.Numeric(12,2))  
+    TA_CAP_U            = db.Column(db.String(12))  
+    TA_CAP_F            = db.Column(db.DateTime())  
+    TA_CAP_H            = db.Column(db.String(5))  
+    TA_NOTAS_SISTEMA    = db.Column(db.String(30))
+    TA_SALDO_FIN        = db.Column(db.String(30))  
+    TA_REFINA           = db.Column(db.String(12))
+    TA_REFINA_EFECTO    = db.Column(db.String(12))
+    
+class TipoMov(db.Model, BaseModel):
+    __bind_key__    = 'OTLC'
+    __tablename__   = 'TCTIPOMOV'
+    TM_EMP          = db.Column(db.String(12))
+    TM_PLAN         = db.Column(db.String(1))
+    TM_TIPO         = db.Column(db.String(20), primary_key=True)
+    TM_SIGNO        = db.Column(db.Numeric(2,0))
+    TM_CAP_U        = db.Column(db.String(12))
+    TM_CAP_F        = db.Column(db.DateTime())
+    TM_CAP_H        = db.Column(db.String(5))
+    TM_AUTORIZA     = db.Column(db.String(1))
+    TM_EDOCTA       = db.Column(db.String(1)) 
