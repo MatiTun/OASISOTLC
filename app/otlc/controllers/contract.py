@@ -122,3 +122,46 @@ def contratct_information__otlc(contrato):
         return JsonResponse(500, msg={'error': str(e)})
 
     return JsonResponse(200, data_json=resp, info={})
+
+@otlc.route('/contract/account-status/<contrato>/get', methods=['GET'])
+def contratct_account_status_otlc(contrato):
+    try:
+        resp = {}
+        resp_detalle = []
+        fecha_hoy = datetime.today()
+        today_f = datetime.now()
+        format_sesion = today_f.strftime("%d%m%y%H%M")
+        try:
+            engine = db.get_engine(bind_key='OTLC')
+            connection = engine.raw_connection()
+            cursor = connection.cursor()
+            estado_cuenta = cursor.callproc("GENERA_EDOCTA",[format_sesion,fecha_hoy,'OTLC','15','B',contrato])
+            print('estado_cuenta', estado_cuenta)
+        except Exception as error:
+            print('Error al generar información genera_edocta {}'.format(error))
+
+        detalle = AccountStatusBody.query.filter(AccountStatusBody.ED_CONTRATO==contrato,AccountStatusBody.ED_SESION==format_sesion).order_by(AccountStatusBody.ED_SECUENCIA).all()
+        for item in detalle:
+            objt_detalle = {}
+            item = item.as_dict()
+            if item['Pago'] is None:
+                    item['Pago'] = ""
+            if item['Vencimiento'] is None:
+                    item['Vencimiento'] = ""
+            if item['Saldo_Mes'] is None:
+                    item['Saldo_Mes'] = 0
+            if item['Total_Pagado'] is None:
+                    item['Total_Pagado'] = 0
+            for x in item.keys():
+                if x not in ['ED_SESION','ED_FECHA_GEN','ED_USUARIO','ED_CONTRATO','ED_SECUENCIA','ED_FORMATO']:
+                    objt_detalle[x] = item[x]
+            resp_detalle.append(objt_detalle)
+        encabezado = AccountStatusHeader.query.filter(AccountStatusHeader.EE_CONTRATO==contrato,AccountStatusHeader.EE_SESION==format_sesion).first()
+        resp = encabezado.as_dict()
+        resp.pop('EE_SESION')
+
+    except Exception as e:
+        print('Error al consultar contrato {}'.format(e))
+        return JsonResponse(500, msg={'error': str(e)})
+
+    return JsonResponse(200, data_json={"Encabezado":resp,"Detalle":resp_detalle}, info={})
