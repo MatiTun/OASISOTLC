@@ -144,10 +144,10 @@ def contratct_account_status_otlc(contrato):
         for item in detalle:
             objt_detalle = {}
             item = item.as_dict()
-            if item['Pago'] is None:
-                    item['Pago'] = ""
-            if item['Vencimiento'] is None:
-                    item['Vencimiento'] = ""
+            # if item['Pago'] is None:
+            #         item['Pago'] = ""
+            # if item['Vencimiento'] is None:
+            #         item['Vencimiento'] = ""
             if item['Saldo_Mes'] is None:
                     item['Saldo_Mes'] = 0
             if item['Total_Pagado'] is None:
