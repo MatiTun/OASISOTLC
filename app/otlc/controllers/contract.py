@@ -26,7 +26,7 @@ def contratct_information__otlc(contrato):
             resp_detalle = []
             data_totales = []
             try:
-                engine = db.get_engine(bind_key='OTLC')
+                engine = db.get_engine(bind='OTLC')
                 connection = engine.raw_connection()
                 cursor = connection.cursor()
                 #genera_edocta ('1454',Trunc(sysdate),'OTLC','15','B','OSG-2028');
@@ -132,7 +132,7 @@ def contratct_account_status_otlc(contrato):
         today_f = datetime.now()
         format_sesion = today_f.strftime("%d%m%y%H%M")
         try:
-            engine = db.get_engine(bind_key='OTLC')
+            engine = db.get_engine(bind='OTLC')
             connection = engine.raw_connection()
             cursor = connection.cursor()
             estado_cuenta = cursor.callproc("GENERA_EDOCTA",[format_sesion,fecha_hoy,'OTLC','15','B',contrato])
@@ -144,10 +144,10 @@ def contratct_account_status_otlc(contrato):
         for item in detalle:
             objt_detalle = {}
             item = item.as_dict()
-            # if item['Pago'] is None:
-            #         item['Pago'] = ""
-            # if item['Vencimiento'] is None:
-            #         item['Vencimiento'] = ""
+            if item['Pago'] is None:
+                    item['Pago'] = ""
+            if item['Vencimiento'] is None:
+                    item['Vencimiento'] = ""
             if item['Saldo_Mes'] is None:
                     item['Saldo_Mes'] = 0
             if item['Total_Pagado'] is None:
