@@ -8,7 +8,7 @@ vcm  = Blueprint("vcm", __name__, url_prefix='/vcm')
 
 @vcm.route('/test', methods = ['GET'])
 def testing():
-    return JsonResponse(200, data_json={'prueba', 'ok'})
+    return JsonResponse(200, data_json={'prueba': 'ok'})
 
 @vcm.route('/booking/bracelet/<folio>', methods=['GET'])
 def get_by_bracelet(folio):
