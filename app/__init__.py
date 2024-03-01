@@ -13,6 +13,8 @@ cors = CORS(app, resources={r'/*':{'origin':['*']}})
 
 from app.otlc.controllers.contract import otlc
 from app.oasis.controllers.registration_card_data import vcm
+from app.auth.controllers.auth import auth
 
 app.register_blueprint(otlc)
 app.register_blueprint(vcm)
+app.register_blueprint(auth)

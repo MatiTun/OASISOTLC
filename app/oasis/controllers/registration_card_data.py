@@ -3,6 +3,7 @@ from flask import Blueprint
 from ...oasis.models.registration_card_data import RegistrationCardData as RC
 from ...avalon.models.booking import BookingsDetailAvalon as D, BookingsGuestAvalon as G
 from app.herpers.api import JsonResponse
+from ...auth.controllers.auth import  token_required
 
 vcm  = Blueprint("vcm", __name__, url_prefix='/vcm')
 
@@ -11,6 +12,7 @@ def testing():
     return JsonResponse(200, data_json={'prueba': 'ok'})
 
 @vcm.route('/booking/bracelet/<folio>', methods=['GET'])
+@token_required
 def get_by_bracelet(folio):
     booking = RC.query.filter(RC.HR_BRAZALETE==folio).first()
     if booking:
