@@ -14,7 +14,7 @@ def token_required(f):
             api_key = APIKey.query.filter(APIKey.AK_TOKEN==request.headers['x-api-key']).first()
             if api_key:
                 print('ip_peticion', request.headers.get('X-Forwarded-For'))
-                if api_key.AK_IP == '0.0.0.0' or (api_key.AK_IP != '0.0.0.0' and api_key.AK_IP == request.remote_addr):
+                if api_key.AK_IP == '0.0.0.0' or (api_key.AK_IP != '0.0.0.0' and api_key.AK_IP == request.headers.get('X-Forwarded-For')):
                     return f(*args, **kwargs)
                 else:
                     return jsonify({
