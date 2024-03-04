@@ -13,7 +13,7 @@ def token_required(f):
         if 'x-api-key' in request.headers:
             api_key = APIKey.query.filter(APIKey.AK_TOKEN==request.headers['x-api-key']).first()
             if api_key:
-                print('ip_peticion', request.base_url)
+                print('ip_peticion', request.environ['HTTP_ORIGIN'])
                 if api_key.AK_IP == '0.0.0.0' or (api_key.AK_IP != '0.0.0.0' and api_key.AK_IP == request.remote_addr):
                     return f(*args, **kwargs)
                 else:
