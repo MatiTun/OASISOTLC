@@ -16,6 +16,7 @@ def token_required(f):
                 print('ip_peticion', request.remote_addr)
                 print('otra ip', request.environ['REMOTE_ADDR'])
                 print('ip mas', request.environ['HTTP_X_REAL_IP'])
+                print('real_ip', request.headers['X-Real-IP'])
                 if api_key.AK_IP == '0.0.0.0' or (api_key.AK_IP != '0.0.0.0' and api_key.AK_IP == request.remote_addr):
                     return f(*args, **kwargs)
                 else:
