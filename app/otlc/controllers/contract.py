@@ -6,10 +6,12 @@ from sqlalchemy.sql.expression import func
 from sqlalchemy import text, or_, and_
 from app.herpers.api import JsonResponse
 from datetime import datetime, timedelta
+from ...auth.controllers.auth import  token_required
 
 otlc  = Blueprint("otlc", __name__, url_prefix='/otlc')
 
 @otlc.route('/contract/information/<contrato>/get', methods=['GET'])
+@token_required
 def contratct_information__otlc(contrato):
     response_data = {}
     try:
@@ -124,6 +126,7 @@ def contratct_information__otlc(contrato):
     return JsonResponse(200, data_json=resp, info={})
 
 @otlc.route('/contract/account-status/<contrato>/get', methods=['GET'])
+@token_required
 def contratct_account_status_otlc(contrato):
     try:
         resp = {}
