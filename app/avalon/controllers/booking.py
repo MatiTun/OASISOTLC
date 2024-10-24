@@ -6,7 +6,7 @@ from app import app
 from sqlalchemy import desc, asc, func, case, String, cast, VARCHAR
 from datetime import datetime
 from io import BytesIO
-
+import pandas
 
 arrivals = Blueprint('arrivals', __name__, url_prefix='/otlc/arrivals')
 
@@ -82,8 +82,8 @@ def arrivals_Avalon(page=1, rows=10):
             av.Bono.label('Bono'),
             av.Estancia.label('Estancia'),
             av.Oferta.label('Oferta'),
-            av.VentaFecha.label('venta'),
-             func.format(av.SalidaDia, 'dd/MM/yy').label('SalidaEstimada'),
+            func.format(av.VentaFecha, 'dd/MM/yy').label('venta'),
+            func.format(av.SalidaDia, 'dd/MM/yy').label('SalidaEstimada'),
             av.Localizador.label('Localizador'),
             av.Segmento.label('Segmento'),
             av.Entidad.label('Agencia'),
@@ -147,9 +147,50 @@ def arrivals_Avalon(page=1, rows=10):
         if estados_list:
             query = query.filter(ada.Estado.in_(estados_list))
 
-        # Ordenar y paginar
         query = query.filter(ada.Linea != -1).order_by(av.HotelFactura, ada.FechaEntrada, av.Reserva, av.Linea)
 
+        if 'excel' in request.form:
+            df = pandas.DataFrame([{
+                    'Hotel Factura': item.Hotel,
+                    'Hotel': item.HotelUso,
+                    'Reserva': item.Reserva,
+                    'Linea': item.Linea,
+                    'Clientes': item.Clientes,
+                    'Nombre': item.Nombre,
+                    'Localizador': item.Localizador,
+                    'Segmento': item.Segmento,
+                    'Agencia': item.Agencia,
+                    'Grupo': item.Grupo,
+                    'Canal': item.Canal,
+                    'Entrada': item.Entrada,
+                    'Salida': item.Salida,
+                    'Nts': item.Nts,
+                    'Estado': item.Estado,
+                    'Ad': item.AD,
+                    'Jr': item.JR,
+                    'Ni': item.NI,
+                    'Cu': item.CU,
+                    'Regim': item.Regim,
+                    'Habi': item.Habi,
+                    'TH': item.th,
+                    'Importe': item.Valoracion,
+                    'Moneda': item.Moneda,
+                    'Tarifa': item.Tarifa,
+                    'Oferta': item.Oferta,
+                    'Bono': item.Bono,
+                    'Estancia': item.Estancia,
+                    'Salida Estimada': item.SalidaEstimada,
+                    'Fecha venta': item.venta,
+                    'CapU': item.CapU,
+                    'Nac': item.Nac,
+                    'Texto': item.Comentario
+            } for item in query.all()])
+            
+            output = BytesIO()
+            with pandas.ExcelWriter(output, engine='xlsxwriter') as writer:
+                df.to_excel(writer, sheet_name='Llegadas_avalon', index=False)
+            output.seek(0)
+            return send_file(output, download_name='Llegadas_avalon.xlsx', as_attachment=True, mimetype='application/vnd.ms-excel')
         try:
             data_paginated = query.paginate(page=page, per_page=rows)
             if data_paginated.items:
