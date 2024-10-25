@@ -238,3 +238,29 @@ def arrivals_Avalon(page=1, rows=10):
             _code = 500
 
         return jsonify({'code': _code, 'data': data, 'info': info, 'msg': error_message})
+    
+    
+@arrivals.route('/segment/search', methods=['GET'])
+def segment():
+    _code = 500
+    ms_error = {'error': 'Error al consultar'}
+    try:
+        data_segmentos = db.session.query(av.Segmento.label('Segmento')).distinct().all()
+
+
+        resp = [{'Segmento': item.Segmento} for item in data_segmentos]
+
+        if resp:
+            info = {'columns': [{'name': 'Segmento'}]}
+            _code = 200
+            msg = {'success': 'Consulta exitosa'}
+        else:
+            info = {}
+            msg = {'info': 'No se encontraron segmentos disponibles'}
+    except Exception as error:
+        msg = {'error': str(error)}
+        resp = []
+        info = {}
+
+    return jsonify({'code': _code, 'data': resp, 'info': info, 'msg': msg})
+
