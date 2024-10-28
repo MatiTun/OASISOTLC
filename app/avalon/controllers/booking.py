@@ -131,21 +131,20 @@ def arrivals_Avalon(page=1, rows=10):
             cma, (cma.Reserva == av.Reserva) & (cma.Linea == av.Linea) & (cma.Texto.like('Voucher%')), isouter=True
         )
         
-        if hotel:
-            query = query.filter(av.HotelFactura == hotel)
-        
-        if fechaini and fechafin:
-            query = query.filter(ada.FechaEntrada >= fechaini, ada.FechaEntrada <= fechafin)
-        elif fechaini and not fechafin:
-            error_message = {'error': 'Debe seleccionar una fecha de fin'}
-            return jsonify({'code': 400, 'data': [], 'info': {}, 'msg': error_message})
-        
         if confirmacion:
             query = query.filter(av.Reserva == confirmacion)
-        if segmento:
-            query = query.filter(av.Segmento == segmento)
-        if estados_list:
-            query = query.filter(ada.Estado.in_(estados_list))
+        else:
+            if hotel:
+                query = query.filter(av.HotelFactura == hotel)
+            if fechaini and fechafin:
+                query = query.filter(ada.FechaEntrada >= fechaini, ada.FechaEntrada <= fechafin)
+            elif fechaini and not fechafin:
+                error_message = {'error': 'Debe seleccionar una fecha de fin'}
+                return jsonify({'code': 400, 'data': [], 'info': {}, 'msg': error_message})
+            if segmento:
+                query = query.filter(av.Segmento == segmento)
+            if estados_list:
+                query = query.filter(ada.Estado.in_(estados_list))
 
         query = query.filter(ada.Linea != -1).order_by(av.HotelFactura, ada.FechaEntrada, av.Reserva, av.Linea)
 
