@@ -269,7 +269,7 @@ def segment():
 @arrivals.route('/user/search', methods=['GET'])
 def user():
     _code = 500
-    ms_error = {'error': 'Error al consultar'}
+    ms_error = {'error': 'Error al consultar usuarios'}
     try:
         data_capu = db.session.query(av.AltaUsuario.label('Capu')).distinct().all()
 
