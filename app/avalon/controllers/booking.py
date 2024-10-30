@@ -13,10 +13,10 @@ arrivals = Blueprint('arrivals', __name__, url_prefix='/otlc/arrivals')
 @arrivals.route('/arrivals/<int:page>', methods=['POST'])
 @arrivals.route('/arrivals/<int:page>/<int:rows>', methods=['POST'])
 def arrivals_Avalon(page=1, rows=10):
-    error_message = {'error': 'Error al consultar'}
     _code = 500
     info = {}
     data = []
+    error_message = None
 
     if request.method == 'POST':
         hotel = request.form.get('hotel', '').strip()
@@ -235,6 +235,7 @@ def arrivals_Avalon(page=1, rows=10):
                 _code = 200
             else:
                 _code = 404
+                error_message = {'info': 'No se encontraron resultados'}
         except Exception as e:
             error_message = {'error': f'Error en la consulta: {str(e)}'}
             _code = 500
