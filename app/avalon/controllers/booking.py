@@ -25,6 +25,7 @@ def arrivals_Avalon(page=1, rows=10):
         confirmacion = request.form.get('confirmacion', '').strip()  
         segmento = request.form.get('segmento', '').strip()  
         estado = request.form.get('estado', '').strip()  
+        capu = request.form.get('capu', '').strip()
         
         estados_list = estado.split(',') if estado else []
         clientes_subquery = (
@@ -145,6 +146,8 @@ def arrivals_Avalon(page=1, rows=10):
                 query = query.filter(av.Segmento == segmento)
             if estados_list:
                 query = query.filter(ada.Estado.in_(estados_list))
+            if capu:
+                query = query.filter(av.AltaUsuario == capu)
 
         query = query.filter(ada.Linea != -1).order_by(av.HotelFactura, ada.FechaEntrada, av.Reserva, av.Linea)
 
@@ -256,6 +259,30 @@ def segment():
         else:
             info = {}
             msg = {'info': 'No se encontraron segmentos disponibles'}
+    except Exception as error:
+        msg = {'error': str(error)}
+        resp = []
+        info = {}
+
+    return jsonify({'code': _code, 'data': resp, 'info': info, 'msg': msg})
+
+@arrivals.route('/user/search', methods=['GET'])
+def user():
+    _code = 500
+    ms_error = {'error': 'Error al consultar'}
+    try:
+        data_capu = db.session.query(av.AltaUsuario.label('Capu')).distinct().all()
+
+
+        resp = [{'Capu': item.Capu} for item in data_capu]
+
+        if resp:
+            info = {'columns': [{'name': 'Capu'}]}
+            _code = 200
+            msg = {'success': 'Consulta exitosa'}
+        else:
+            info = {}
+            msg = {'info': 'No se encontraron usuarios'}
     except Exception as error:
         msg = {'error': str(error)}
         resp = []
