@@ -188,9 +188,72 @@ class CommentsAvalon(db.Model):
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
+class ImpEst(db.Model):
+    __bind_key__ = 'AVALON'
+    __tablename__ = 'PRODetalleEstancia'
+
+    Factura = db.Column(db.String(20), primary_key=True, nullable=False)
+    ClaveID = db.Column(db.Numeric, nullable=False)
+    Reserva = db.Column(db.String(20), nullable=True)
+    LineaReserva = db.Column(db.Numeric, nullable=True)
+    Destino = db.Column(db.Numeric, nullable=True)
+    TipoPersona = db.Column(db.Numeric, nullable=True)
+    NumeroPersona = db.Column(db.Numeric, nullable=True)
+    Fecha = db.Column(db.DateTime, nullable=True)
+    CentroProductivo = db.Column(db.String(20), nullable=True)
+    Divisa = db.Column(db.String(20), nullable=True)
+    ImpuestosIncluidos = db.Column(db.Boolean, nullable=True)
+    PorcentajeImpuesto = db.Column(db.Numeric(18, 2), nullable=True)
+    DiferencialImpuesto = db.Column(db.Boolean, nullable=True)
+    Cantidad = db.Column(db.Numeric, nullable=True)
+    Precio = db.Column(db.Numeric(18, 4), nullable=True)
+    ImporteProduccion = db.Column(db.Numeric(18, 4), nullable=True)
+    Garantia = db.Column(db.Numeric, nullable=True)
+    Concepto = db.Column(db.String(50), nullable=True)
+    FacturaOriginal = db.Column(db.String(20), nullable=True)
+    Contrato = db.Column(db.String(20), nullable=True)
+    Tarifa = db.Column(db.String(20), nullable=True)
+    Oferta = db.Column(db.String(20), nullable=True)
+    TipoServicio = db.Column(db.Numeric, nullable=True)
+    TipoPrecio = db.Column(db.Numeric, nullable=True)
+    OrigenPrecio = db.Column(db.Numeric, nullable=True)
+    RG = db.Column(db.String(36), nullable=True)  
+    TipoLinea = db.Column(db.Numeric, nullable=True)
+    ClaveComision = db.Column(db.String(36), nullable=True)  
+    LineaFactura = db.Column(db.Numeric, nullable=True)
+    ReferenciaPaqueteCT = db.Column(db.String(36), nullable=True)  
+    CodigoPremio = db.Column(db.String(20), nullable=True)
+    CodigoTTu = db.Column(db.String(20), nullable=True)
     
+    def as_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
+class ImExt(db.Model):
+    __bind_key__ = 'AVALON'
+    __tablename__ = 'RECReservasPreciosExterno'
 
+    Reserva = db.Column(db.String(20), primary_key=True, nullable=False)
+    Linea = db.Column(db.Numeric, nullable=False)
+    Orden = db.Column(db.Numeric, nullable=False)
+    Tarifa = db.Column(db.String(20), nullable=True)
+    LineaTarifa = db.Column(db.String(20), nullable=True)
+    Importe = db.Column(db.Numeric(18, 5), nullable=True)
+    Divisa = db.Column(db.String(20), nullable=True)
+    Concepto = db.Column(db.String(50), nullable=True)
+    Fecha = db.Column(db.DateTime, nullable=True)
+    NumeroPersona = db.Column(db.Numeric, nullable=True)
+    TipoPersona = db.Column(db.String(20), nullable=True)
+    TipoLinea = db.Column(db.String(20), nullable=True)
+    TipoPrecio = db.Column(db.String(20), nullable=True)
+    TipoSuplemento = db.Column(db.String(20), nullable=True)
+    RG = db.Column(db.String(36), nullable=True)  
+    TipoPrecioAvalon = db.Column(db.Numeric, nullable=True)
+    CodigoSuplemento = db.Column(db.String(20), nullable=True)
+    CargoPorCancelacion = db.Column(db.Boolean, nullable=True)
+    ImporteOriginal = db.Column(db.Numeric(18, 5), nullable=True)
+    
+    def as_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
     
     
     

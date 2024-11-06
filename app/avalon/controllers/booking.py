@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, send_file
 from app.herpers.api import pagination, JsonResponse
 from ...avalon.models.booking import db, BookingsAvalon as av, BookingsDetailAvalon as ada, BookingsGuestAvalon as ca, ValorationAvalon as va,EntitiesAvalon as ea\
-                                    ,CommentsAvalon as cma
+                                    ,CommentsAvalon as cma, ImExt, ImpEst, ExchangeAvalon as exa
 from app import app
 from sqlalchemy import desc, asc, func, case, String, cast, VARCHAR
 from datetime import datetime
@@ -74,6 +74,30 @@ def arrivals_Avalon(page=1, rows=10):
             .correlate(av)
             .as_scalar()
         )
+        
+        valoracion_mxn_subquery = db.session.query(
+            func.sum(func.coalesce(va.PrecioFac, 0) 
+        )
+        ).filter(
+            va.Reserva == av.Reserva,
+            va.LineaReserva == av.Linea
+        ).label('Valoracion_mxn')
+
+        externo_mxn_subquery = db.session.query(
+            func.sum(func.coalesce(ImExt.Importe, 0)
+        )
+        ).filter(
+            ImExt.Reserva == av.Reserva,
+            ImExt.Linea == av.Linea
+        ).label('Externo_mxn')
+
+        estancia_mxn_subquery = db.session.query(
+            func.sum(func.coalesce(ImpEst.Precio, 0) 
+        )
+        ).filter(
+            ImpEst.Reserva == av.Reserva,
+            ImpEst.LineaReserva == av.Linea
+        ).label('Estancia_mxn')
 
 
         query = db.session.query(
@@ -109,14 +133,11 @@ def arrivals_Avalon(page=1, rows=10):
             ada.Habitacion.label('Habi'),
             av.THFactura.label('th'),
             ada.HotelUso,
-            db.session.query(
-                func.sum(
-                    func.coalesce(va.PrecioFac, 0)
-                )
-            ).filter(
-                va.Reserva == av.Reserva,
-                va.LineaReserva == av.Linea
-            ).label('Valoracion'),
+            func.coalesce(
+                valoracion_mxn_subquery,
+                externo_mxn_subquery,
+                estancia_mxn_subquery
+            ).label('Importe'),
             ea.DivisaFacturas.label('Moneda'),
             av.Tarifa,
             av.AltaUsuario.label('CapU'),
@@ -175,7 +196,7 @@ def arrivals_Avalon(page=1, rows=10):
                     'Regim': item.Regim,
                     'Habi': item.Habi,
                     'TH': item.th,
-                    'Importe': item.Valoracion,
+                    'Importe': item.Importe,
                     'Moneda': item.Moneda,
                     'Tarifa': item.Tarifa,
                     'Oferta': item.Oferta,
@@ -220,7 +241,7 @@ def arrivals_Avalon(page=1, rows=10):
                     'Regim': item.Regim,
                     'Habi': item.Habi,
                     'TH': item.th,
-                    'Importe': item.Valoracion,
+                    'Importe': item.Importe,
                     'Moneda': item.Moneda,
                     'Tarifa': item.Tarifa,
                     'Oferta': item.Oferta,
