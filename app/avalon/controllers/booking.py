@@ -98,6 +98,16 @@ def arrivals_Avalon(page=1, rows=10):
             ImpEst.Reserva == av.Reserva,
             ImpEst.LineaReserva == av.Linea
         ).label('Estancia_mxn')
+        
+        moneda_subquery_externa = db.session.query(func.max(ImExt.Divisa)).filter(
+            ImExt.Reserva == av.Reserva,
+            ImExt.Linea == av.Linea
+        ).correlate(av).scalar_subquery()
+        moneda_subquery_estancia = db.session.query(func.max(ImpEst.Divisa)).filter(
+            ImpEst.Reserva == av.Reserva,
+            ImpEst.LineaReserva == av.Linea
+        ).correlate(av).scalar_subquery()
+
 
 
         query = db.session.query(
@@ -138,7 +148,8 @@ def arrivals_Avalon(page=1, rows=10):
                 externo_mxn_subquery,
                 estancia_mxn_subquery
             ).label('Importe'),
-            ea.DivisaFacturas.label('Moneda'),
+            # ea.DivisaFacturas.label('Moneda'),
+            func.coalesce(moneda_subquery_externa, moneda_subquery_estancia).label('Moneda'),
             av.Tarifa,
             av.AltaUsuario.label('CapU'),
             func.coalesce(av.Nacionalidad, func.substring(av.Segmento, 1, 3)).label('Nac'),
@@ -390,12 +401,21 @@ def llegadas_Avalon(page=1, rows=10):
         ).label('Externo_mxn')
 
         estancia_mxn_subquery = db.session.query(
-            func.sum(func.coalesce(ImpEst.Precio, 0) 
+            func.sum(func.coalesce(ImpEst.Precio, 0),
         )
         ).filter(
             ImpEst.Reserva == av.Reserva,
             ImpEst.LineaReserva == av.Linea
         ).label('Estancia_mxn')
+        
+        moneda_subquery_externa = db.session.query(func.max(ImExt.Divisa)).filter(
+            ImExt.Reserva == av.Reserva,
+            ImExt.Linea == av.Linea
+        ).correlate(av).scalar_subquery()
+        moneda_subquery_estancia = db.session.query(func.max(ImpEst.Divisa)).filter(
+            ImpEst.Reserva == av.Reserva,
+            ImpEst.LineaReserva == av.Linea
+        ).correlate(av).scalar_subquery()
 
 
         query = db.session.query(
@@ -436,7 +456,8 @@ def llegadas_Avalon(page=1, rows=10):
                 externo_mxn_subquery,
                 estancia_mxn_subquery
             ).label('Importe'),
-            ea.DivisaFacturas.label('Moneda'),
+            # ImpEst.Divisa.label('Moneda'),
+            func.coalesce(moneda_subquery_externa, moneda_subquery_estancia).label('Moneda'),
             av.Tarifa,
             av.AltaUsuario.label('CapU'),
             func.coalesce(av.Nacionalidad, func.substring(av.Segmento, 1, 3)).label('Nac'),
@@ -450,9 +471,9 @@ def llegadas_Avalon(page=1, rows=10):
         ).join(
             cma, (cma.Reserva == av.Reserva) & (cma.Linea == av.Linea) & (cma.Texto.like('Voucher%')), isouter=True
         )
-        print(yesterday, ada.FechaEntrada)
+        # print(yesterday, ada.FechaEntrada)
         
-        # query = query.filter(ada.FechaEntrada == fechaini, ada.FechaSalida == fechafin, av.Segmento == segmento, av.AltaUsuario == capu, ada.Linea != -1).order_by(av.HotelFactura, ada.FechaEntrada, av.Reserva, av.Linea)
+        # query = query.filter(av.Reserva == 'GOPRS240202050')
     
         query = query.filter(
             or_(ada.FechaEntrada == yesterday.date(), ada.FechaSalida == yesterday.date()),  # OR entre fechas
