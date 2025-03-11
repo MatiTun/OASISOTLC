@@ -107,6 +107,11 @@ def arrivals_Avalon(page=1, rows=10):
             ImpEst.Reserva == av.Reserva,
             ImpEst.LineaReserva == av.Linea
         ).correlate(av).scalar_subquery()
+        
+        moneda_subquery = db.session.query(func.max(va.DivisaFac)).filter(
+            va.Reserva == av.Reserva,
+            va.LineaReserva == av.Linea
+        ).correlate(av).scalar_subquery()
 
 
 
@@ -149,7 +154,7 @@ def arrivals_Avalon(page=1, rows=10):
                 estancia_mxn_subquery
             ).label('Importe'),
             # ea.DivisaFacturas.label('Moneda'),
-            func.coalesce(moneda_subquery_externa, moneda_subquery_estancia).label('Moneda'),
+            func.coalesce(moneda_subquery_externa, moneda_subquery_estancia, moneda_subquery).label('Moneda'),
             av.Tarifa,
             av.AltaUsuario.label('CapU'),
             func.coalesce(av.Nacionalidad, func.substring(av.Segmento, 1, 3)).label('Nac'),
@@ -416,6 +421,11 @@ def llegadas_Avalon(page=1, rows=10):
             ImpEst.Reserva == av.Reserva,
             ImpEst.LineaReserva == av.Linea
         ).correlate(av).scalar_subquery()
+        
+        moneda_subquery = db.session.query(func.max(va.DivisaFac)).filter(
+            va.Reserva == av.Reserva,
+            va.LineaReserva == av.Linea
+        ).correlate(av).scalar_subquery() 
 
 
         query = db.session.query(
@@ -457,7 +467,7 @@ def llegadas_Avalon(page=1, rows=10):
                 estancia_mxn_subquery
             ).label('Importe'),
             # ImpEst.Divisa.label('Moneda'),
-            func.coalesce(moneda_subquery_externa, moneda_subquery_estancia).label('Moneda'),
+            func.coalesce(moneda_subquery_externa, moneda_subquery_estancia, moneda_subquery).label('Moneda'),
             av.Tarifa,
             av.AltaUsuario.label('CapU'),
             func.coalesce(av.Nacionalidad, func.substring(av.Segmento, 1, 3)).label('Nac'),
