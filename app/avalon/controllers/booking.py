@@ -149,12 +149,12 @@ def arrivals_Avalon(page=1, rows=10):
             av.THFactura.label('th'),
             ada.HotelUso,
             func.coalesce(
-                valoracion_mxn_subquery,
                 externo_mxn_subquery,
+                valoracion_mxn_subquery,
                 estancia_mxn_subquery
             ).label('Importe'),
             # ea.DivisaFacturas.label('Moneda'),
-            func.coalesce(moneda_subquery_externa, moneda_subquery_estancia, moneda_subquery).label('Moneda'),
+            func.coalesce(moneda_subquery_externa, moneda_subquery, moneda_subquery_estancia).label('Moneda'),
             av.Tarifa,
             av.AltaUsuario.label('CapU'),
             func.coalesce(av.Nacionalidad, func.substring(av.Segmento, 1, 3)).label('Nac'),
@@ -462,12 +462,12 @@ def llegadas_Avalon(page=1, rows=10):
             av.THFactura.label('th'),
             ada.HotelUso,
             func.coalesce(
-                valoracion_mxn_subquery,
                 externo_mxn_subquery,
+                valoracion_mxn_subquery,
                 estancia_mxn_subquery
             ).label('Importe'),
             # ImpEst.Divisa.label('Moneda'),
-            func.coalesce(moneda_subquery_externa, moneda_subquery_estancia, moneda_subquery).label('Moneda'),
+            func.coalesce(moneda_subquery_externa, moneda_subquery, moneda_subquery_estancia).label('Moneda'),
             av.Tarifa,
             av.AltaUsuario.label('CapU'),
             func.coalesce(av.Nacionalidad, func.substring(av.Segmento, 1, 3)).label('Nac'),
