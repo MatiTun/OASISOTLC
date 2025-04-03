@@ -3,7 +3,7 @@ from app.herpers.api import pagination, JsonResponse
 from ...avalon.models.booking import db, BookingsAvalon as av, BookingsDetailAvalon as ada, BookingsGuestAvalon as ca, ValorationAvalon as va,EntitiesAvalon as ea\
                                     ,CommentsAvalon as cma, ImExt, ImpEst, ExchangeAvalon as exa
 from app import app
-from sqlalchemy import desc, asc, func, case, or_, String, cast, VARCHAR
+from sqlalchemy import desc, asc, func, case, or_, String, cast, VARCHAR, and_
 from datetime import datetime, timedelta
 from io import BytesIO
 import pandas
@@ -334,11 +334,10 @@ def llegadas_Avalon(page=1, rows=10):
     info = {}
     data = []
     error_message = None
-    yesterday = (datetime.now() - timedelta(days=1))
+    today = datetime.now()
+    dosSemanas = (datetime.now() + timedelta(days=15))
     # print(yesterday)
     if request.method == 'POST':
-        fechafin = yesterday 
-        fechaini = yesterday
         segmento = 'OTLC' 
         capu = 'WEB'
         
@@ -486,7 +485,9 @@ def llegadas_Avalon(page=1, rows=10):
         # query = query.filter(av.Reserva == 'GOPRS240202050')
     
         query = query.filter(
-            or_(ada.FechaEntrada == yesterday.date(), ada.FechaSalida == yesterday.date()),  # OR entre fechas
+            or_(
+                and_(ada.FechaEntrada >= today.date(), ada.FechaEntrada <= dosSemanas)
+            ),
             av.Segmento == "OTLC",
             av.AltaUsuario == "WEB",
             ada.Linea != -1
