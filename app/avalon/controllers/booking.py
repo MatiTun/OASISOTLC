@@ -618,7 +618,7 @@ def reservas_paraty():
             av.Bono.label('Bono'),
             av.Estancia.label('Estancia'),
             av.Oferta.label('Oferta'),
-            av.VentaFecha.label('venta'),
+            av.AltaFecha.label('alta'),
             av.Localizador.label('Localizador'),
             av.Segmento.label('Segmento'),
             av.Entidad.label('Agencia'),
@@ -669,7 +669,6 @@ def reservas_paraty():
         resultados = query.all()
         salida = []
         for item in resultados:
-            # También puedes calcular `categoria` aquí si quieres devolverlo
             salida.append({
                 'reserva': item.Reserva,
                 'linea': item.Linea,
@@ -691,12 +690,45 @@ def reservas_paraty():
                 'capu': item.CapU,
                 'segmento': item.Segmento,
                 'entidad': item.Entidad,
-                'nombre': item.Nombre
+                'nombre': item.Nombre,
+                'alta': item.alta
             })
-        return jsonify({'code': 200, 'reservas': salida})
+        clientes = db.session.query(
+            ca.Reserva, 
+            ca.Linea, 
+            ca.Numero, 
+            ca.Nombre,
+            ca.Apellido1,
+            ca.Apellido2,
+            ca.TipoPersona,
+            ca.Edad
+        ).join(
+            av, (av.Reserva == ca.Reserva) & (av.Linea == ca.Linea)
+        ).filter(
+            av.Reserva == unique_id,
+            av.Linea != -1
+        ).order_by(
+            ca.Reserva, ca.Linea, ca.Numero
+        ).all()
+
+        lista_clientes = []
+        for r, l, n, nombre, ap1, ap2, tipo, edad in clientes:
+            lista_clientes.append({
+                'reserva': r,
+                'linea': l,
+                'numero': n,
+                'nombre': nombre,
+                'apellido1': ap1,
+                'apellido2': ap2,
+                'tipo_persona': tipo,
+                'edad': int(edad) if edad else 0
+            })
+
+        return jsonify({
+            'code': 200,
+            'reservas': salida,
+            'clientes': lista_clientes
+        })
 
     except Exception as e:
-            return jsonify({'code': 500, 'msg': f'Error al consultar: {str(e)}'})
-
-
-    
+        return jsonify({'code': 500, 'msg': f'Error al consultar: {str(e)}'})
