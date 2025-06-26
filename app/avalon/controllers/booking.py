@@ -662,7 +662,7 @@ def reservas_paraty():
         ).join(
             cma, (cma.Reserva == av.Reserva) & (cma.Linea == av.Linea) & (cma.Texto.like('Voucher%')), isouter=True
         ).filter(
-            av.Reserva == 'R6358B6BE7',
+            av.Reserva == unique_id,
             ada.Linea != -1
         ).order_by(av.HotelFactura, ada.FechaEntrada, av.Reserva, av.Linea)
         
