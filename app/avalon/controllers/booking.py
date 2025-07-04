@@ -732,3 +732,191 @@ def reservas_paraty():
 
     except Exception as e:
         return jsonify({'code': 500, 'msg': f'Error al consultar: {str(e)}'})
+
+
+@arrivals.route('/reservations/avalon', methods=['GET'])
+def reservas_avalon():
+    _code = 500
+    info = {}
+    data = []
+    error_message = None
+    try:
+        numero_min_subquery = (
+            db.session.query(func.min(ca.Numero))
+            .filter(ca.Reserva == av.Reserva, ca.Linea == av.Linea)
+            .correlate(av)
+            .scalar_subquery()
+        )
+
+        nombre_subquery = (
+            db.session.query(
+                func.concat(
+                    ca.Nombre, ' ',
+                    ca.Apellido1, ' ',
+                    ca.Apellido2
+                )
+            )
+            .filter(ca.Reserva == av.Reserva, ca.Linea == av.Linea, ca.Numero == numero_min_subquery)
+            .correlate(av)
+            .scalar_subquery()
+        )
+
+        valoracion_mxn_subquery = db.session.query(
+            func.sum(func.coalesce(va.PrecioFac, 0))
+        ).filter(
+            va.Reserva == av.Reserva,
+            va.LineaReserva == av.Linea
+        ).scalar_subquery()
+
+        externo_mxn_subquery = db.session.query(
+            func.sum(func.coalesce(ImExt.Importe, 0))
+        ).filter(
+            ImExt.Reserva == av.Reserva,
+            ImExt.Linea == av.Linea
+        ).scalar_subquery()
+
+        estancia_mxn_subquery = db.session.query(
+            func.sum(func.coalesce(ImpEst.Precio, 0))
+        ).filter(
+            ImpEst.Reserva == av.Reserva,
+            ImpEst.LineaReserva == av.Linea
+        ).scalar_subquery()
+
+        moneda_subquery_externa = db.session.query(func.max(ImExt.Divisa)).filter(
+            ImExt.Reserva == av.Reserva,
+            ImExt.Linea == av.Linea
+        ).correlate(av).scalar_subquery()
+
+        moneda_subquery_estancia = db.session.query(func.max(ImpEst.Divisa)).filter(
+            ImpEst.Reserva == av.Reserva,
+            ImpEst.LineaReserva == av.Linea
+        ).correlate(av).scalar_subquery()
+
+        moneda_subquery = db.session.query(func.max(va.DivisaFac)).filter(
+            va.Reserva == av.Reserva,
+            va.LineaReserva == av.Linea
+        ).correlate(av).scalar_subquery()
+
+        prefijos = ['BPA', 'GPA', 'GOC', 'GOP', 'SPA', 'GBA', 'ZPA', 'GOT']
+        query = db.session.query(
+            av.HotelFactura.label('Hotel'),
+            av.Reserva.label('Reserva'),
+            av.Linea.label('Linea'),
+            av.Bono.label('Bono'),
+            av.Estancia.label('Estancia'),
+            av.Oferta.label('Oferta'),
+            av.AltaFecha.label('alta'),
+            av.Localizador.label('Localizador'),
+            av.Segmento.label('Segmento'),
+            av.Entidad.label('Agencia'),
+            av.Grupo.label('Grupo'),
+            av.Canal.label('Canal'),
+            ada.FechaEntrada.label('Entrada'),
+            ada.FechaSalida.label('Salida'),
+            ada.Noches.label('Nts'),
+            case(
+                (ada.Estado == 0, 'Reserva'),
+                (ada.Estado == 1, 'EnCasa'),
+                (ada.Estado == 2, 'Salida'),
+                (ada.Estado == 3, 'NoShow'),
+                (ada.Estado == 4, 'Cancelada'),
+                else_='Desconocido'
+            ).label('Estado'),
+            ada.AD,
+            ada.JR,
+            ada.NI,
+            ada.CU,
+            av.RegimenFactura.label('Regim'),
+            ada.Habitacion.label('Habi'),
+            av.THFactura.label('th'),
+            ada.HotelUso,
+            av.Entidad,
+            func.coalesce(
+                externo_mxn_subquery,
+                valoracion_mxn_subquery,
+                estancia_mxn_subquery
+            ).label('Importe'),
+            func.coalesce(moneda_subquery_externa, moneda_subquery, moneda_subquery_estancia).label('Moneda'),
+            av.Tarifa,
+            av.AltaUsuario.label('CapU'),
+            func.coalesce(av.Nacionalidad, func.substring(av.Segmento, 1, 3)).label('Nac'),
+            av.TextoReserva.label('Comentario'),
+            nombre_subquery.label('Nombre')
+        ).join(
+            ada, (ada.Reserva == av.Reserva) & (ada.Linea == av.Linea), isouter=True
+        ).join(
+            ea, ea.Entidad == av.Entidad, isouter=True
+        ).join(
+            cma, (cma.Reserva == av.Reserva) & (cma.Linea == av.Linea) & (cma.Texto.like('Voucher%')), isouter=True
+        ).filter(
+            or_(*[av.Localizador.like(f'{prefix}%') for prefix in prefijos]),
+            av.AltaUsuario != 'WEB',
+            av.Segmento == 'OTLC',
+            av.Linea != -1
+        ).order_by(av.HotelFactura, ada.FechaEntrada, av.Reserva, av.Linea)
+        
+        resultados = query.all()
+        salida = []
+        for item in resultados:
+            salida.append({
+                'reserva': item.Reserva,
+                'linea': item.Linea,
+                'localizador': item.Localizador,
+                'estado': item.Estado,
+                'hotel': item.HotelUso,
+                'entrada': str(item.Entrada),
+                'salida': str(item.Salida),
+                'noches': item.Nts,
+                'adultos': item.AD,
+                'juniors': item.JR,
+                'menores': item.NI,
+                'bebes': item.CU,
+                'tipo_habitacion': item.th,
+                'importe': float(item.Importe) if item.Importe else 0,
+                'moneda': item.Moneda,
+                'tarifa_desc': item.Tarifa,
+                'comentario': item.Comentario,
+                'capu': item.CapU,
+                'segmento': item.Segmento,
+                'entidad': item.Entidad,
+                'nombre': item.Nombre,
+                'alta': item.alta
+            })
+        #     clientes = db.session.query(
+        #     ca.Reserva, 
+        #     ca.Linea, 
+        #     ca.Numero, 
+        #     ca.Nombre,
+        #     ca.Apellido1,
+        #     ca.Apellido2,
+        #     ca.TipoPersona,
+        #     ca.Edad
+        # ).join(
+        #     av, (av.Reserva == ca.Reserva) & (av.Linea == ca.Linea)
+        # ).filter(
+        #     av.Reserva == item.Reserva,
+        #     av.Linea != -1
+        # ).order_by(
+        #     ca.Reserva, ca.Linea, ca.Numero
+        # ).all()
+
+        # lista_clientes = []
+        # for r, l, n, nombre, ap1, ap2, tipo, edad in clientes:
+        #     lista_clientes.append({
+        #         'reserva': r,
+        #         'linea': l,
+        #         'numero': n,
+        #         'nombre': nombre,
+        #         'apellido1': ap1,
+        #         'apellido2': ap2,
+        #         'tipo_persona': tipo,
+        #         'edad': int(edad) if edad else 0
+        #     })
+       
+        return jsonify({
+            'code': 200,
+            'reservas': salida
+        })
+
+    except Exception as e:
+        return jsonify({'code': 500, 'msg': f'Error al consultar: {str(e)}'})
