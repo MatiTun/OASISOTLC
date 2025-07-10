@@ -229,7 +229,7 @@ def arrivals_Avalon(page=1, rows=10):
             with pandas.ExcelWriter(output, engine='xlsxwriter') as writer:
                 df.to_excel(writer, sheet_name='Llegadas_avalon', index=False)
             output.seek(0)
-            return send_file(output, download_name='Llegadas_avalon.xlsx', as_attachment=True, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            return send_file(output, download_name='Llegadas_avalon.xlsx', as_attachment=True, mimetype='application/vnd.ms-excel')
         try:
             data_paginated = query.paginate(page=page, per_page=rows)
             if data_paginated.items:
