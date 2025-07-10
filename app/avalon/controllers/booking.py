@@ -328,7 +328,7 @@ def user():
 
     return jsonify({'code': _code, 'data': resp, 'info': info, 'msg': msg})
 
-@arrivals.route('/arrivals', methods=['POST'])
+@arrivals.route('/arrivals2', methods=['POST'])
 def llegadas_Avalon(page=1, rows=10):
     _code = 500
     info = {}
@@ -740,6 +740,9 @@ def reservas_avalon():
     info = {}
     data = []
     error_message = None
+    
+    captura_fecha = datetime.today()
+    
     try:
         numero_min_subquery = (
             db.session.query(func.min(ca.Numero))
@@ -852,7 +855,8 @@ def reservas_avalon():
             or_(*[av.Localizador.like(f'{prefix}%') for prefix in prefijos]),
             av.AltaUsuario != 'WEB',
             av.Segmento == 'OTLC',
-            av.Linea != -1
+            av.Linea != -1,
+            av.AltaFecha == captura_fecha      
         ).order_by(av.HotelFactura, ada.FechaEntrada, av.Reserva, av.Linea)
         
         resultados = query.all()
