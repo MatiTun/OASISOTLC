@@ -188,7 +188,7 @@ def arrivals_Avalon(page=1, rows=10):
 
         query = query.filter(ada.Linea != -1).order_by(av.HotelFactura, ada.FechaEntrada, av.Reserva, av.Linea)
 
-        if 'excel' in request.form:
+        if request.form.get('excel') == 'true':
             df = pandas.DataFrame([{
                     'Hotel Factura': item.Hotel,
                     'Hotel': item.HotelUso,
