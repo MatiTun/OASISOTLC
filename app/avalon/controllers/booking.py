@@ -470,7 +470,7 @@ def llegadas_Avalon(page=1, rows=10):
             av.Tarifa,
             av.AltaUsuario.label('CapU'),
             func.coalesce(av.Nacionalidad, func.substring(av.Segmento, 1, 3)).label('Nac'),
-            cma.Texto.label('Comentario'),
+            av.TextoReserva.label('Comentario'),
             clientes_subquery.label('Clientes'),
             nombre_subquery.label('Nombre')
         ).join(
