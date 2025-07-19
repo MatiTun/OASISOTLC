@@ -26,9 +26,9 @@ def arrivals_Avalon(page=1, rows=10):
         segmento = request.form.get('segmento', '').strip()  
         estado = request.form.get('estado', '').strip()  
         capu = request.form.get('capu', '').strip()
-        entidad = request.form.get('agencia', '').strip
+        # entidad = request.form.get('agencia', '').strip
         
-        entidades_list = entidad.split(',') if entidad else []
+        # entidades_list = entidad.split(',') if entidad else []
         estados_list = estado.split(',') if estado else []
         clientes_subquery = (
             db.session.query(
@@ -187,8 +187,8 @@ def arrivals_Avalon(page=1, rows=10):
                 query = query.filter(ada.Estado.in_(estados_list))
             if capu:
                 query = query.filter(av.AltaUsuario == capu)
-            if entidades_list: 
-                query = query.filter(av.Entidad.in_(entidades_list))
+            # if entidades_list: 
+            #     query = query.filter(av.Entidad.in_(entidades_list))
 
         query = query.filter(ada.Linea != -1).order_by(av.HotelFactura, ada.FechaEntrada, av.Reserva, av.Linea)
 
