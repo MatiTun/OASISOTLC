@@ -1,6 +1,6 @@
 from datetime import datetime
 from app import db
-from app.herpers.utilis import BaseModel
+from app.helpers.utilis import BaseModel
 
 class Contract(db.Model, BaseModel):
     __bind_key__            = 'OTLC'
