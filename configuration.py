@@ -6,7 +6,7 @@ class BaseConfig(object):
     SQLALCHEMY_TRACK_MODIFICATIONS  = False
     SQLALCHEMY_DATABASE_URI         = 'oracle://COMER:SERVICE@192.168.1.25:1521/ZEUS'
     SQLALCHEMY_BINDS = {
-        'OTLC'  : 'oracle://OTLC:SERVICE@192.168.1.25:1521/ZEUS',
+        'OTLC'  : 'oracle://OTLC:OTLC@192.168.1.25:1521/ZEUS',
         'AVALON': 'mssql+pymssql://Royal:Royal2022**@10.1.0.139/AntforHotel-OAS',
         'AWS'   : 'mysql+pymysql://desarrollo:d3s4rr0ll0@10.1.0.140:3306/CIELO'
     }

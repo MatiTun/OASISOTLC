@@ -9,9 +9,9 @@ __pycache__/
 *.pyo
 env/
 venv/
-venv310/
 backenv/
 .venv/
+venv310/
 env*
 dist/
 build/
@@ -25,3 +25,4 @@ docs/_build/
 .vscode
 run.py
 *.csv
+venv1/
