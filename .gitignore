@@ -11,6 +11,7 @@ env/
 venv/
 backenv/
 .venv/
+venv310/
 env*
 dist/
 build/

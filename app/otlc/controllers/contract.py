@@ -4,7 +4,7 @@ from flask import Blueprint
 from ..models.contract import Contract, Movement, AccountStatusHeader, AccountStatusBody, Amortization,TipoMov, db
 from sqlalchemy.sql.expression import func
 from sqlalchemy import text, or_, and_, func as f
-from app.herpers.api import JsonResponse
+from app.helpers.api import JsonResponse
 from datetime import datetime, timedelta
 from ...auth.controllers.auth import  token_required
 

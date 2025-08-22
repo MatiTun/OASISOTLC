@@ -6,7 +6,6 @@ import base64
 from dateutil.parser import parse
 
 dateformat = None
-
 def pagination(result):
     return {
         'page': result.page,
@@ -32,9 +31,15 @@ def response(data):
             if isinstance(item, list):
                 _response.append(response(item))
             else:
-                _response.append(item.as_dict())
+                try:
+                    _response.append(item.as_dict())
+                except Exception as ex:
+                    _response.append(item._asdict())
     elif data:
-        _response.append(data.as_dict())
+        try:
+            _response.append(data.as_dict())
+        except Exception as ex:
+            _response.append(data._asdict())
     return _response
 
 def JsonResponse(code, data=None, data_json=None, msg=None, info=None, date_format=None):
