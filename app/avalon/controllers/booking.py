@@ -958,25 +958,26 @@ def entidades():
 
     return jsonify({'code': _code, 'data': resp, 'info': info, 'msg': msg})
 
-@arrivals.route('/arrivalsP/<int:page>', methods=['POST'])
-@arrivals.route('/arrivalsP/<int:page>/<int:rows>', methods=['POST'])
-def arrivals_AvalonP(page=1, rows=10):
+@arrivals.route('/arrivalsP', methods=['POST'])
+def arrivals_AvalonP():
     _code = 500
     info = {}
     data = []
     error_message = None
 
     if request.method == 'POST':
-        fechafin = request.form.get('fechafin', '').strip() 
-        fechaini = request.form.get('fechaini', '').strip() 
-        confirmacion = request.form.get('confirmacion', '').strip()  
+
+        fechafin = request.form.get('fechafin', '').strip()
+        fechaini = request.form.get('fechaini', '').strip()
+        confirmacion = request.form.get('confirmacion', '').strip()
         segmento = 'OTLC'
-        estado = request.form.get('estado', '').strip()  
+        estado = request.form.get('estado', '').strip()
         capu = request.form.get('capu', '').strip()
         entidad = request.form.get('entidad', '').strip()
-        
+
         entidades_list = entidad.split(',') if entidad else []
         estados_list = estado.split(',') if estado else []
+
         clientes_subquery = (
             db.session.query(
                 func.string_agg(
@@ -1023,47 +1024,44 @@ def arrivals_AvalonP(page=1, rows=10):
             .correlate(av)
             .as_scalar()
         )
-        
+
         valoracion_mxn_subquery = db.session.query(
-            func.sum(func.coalesce(va.PrecioFac, 0) 
-        )
+            func.sum(func.coalesce(va.PrecioFac, 0))
         ).filter(
             va.Reserva == av.Reserva,
             va.LineaReserva == av.Linea
         ).label('Valoracion_mxn')
 
         externo_mxn_subquery = db.session.query(
-            func.sum(func.coalesce(ImExt.Importe, 0)
-        )
+            func.sum(func.coalesce(ImExt.Importe, 0))
         ).filter(
             ImExt.Reserva == av.Reserva,
             ImExt.Linea == av.Linea
         ).label('Externo_mxn')
 
         estancia_mxn_subquery = db.session.query(
-            func.sum(func.coalesce(ImpEst.Precio, 0) 
-        )
+            func.sum(func.coalesce(ImpEst.Precio, 0))
         ).filter(
             ImpEst.Reserva == av.Reserva,
             ImpEst.LineaReserva == av.Linea
         ).label('Estancia_mxn')
-        
+
         moneda_subquery_externa = db.session.query(func.max(ImExt.Divisa)).filter(
             ImExt.Reserva == av.Reserva,
             ImExt.Linea == av.Linea
         ).correlate(av).scalar_subquery()
+
         moneda_subquery_estancia = db.session.query(func.max(ImpEst.Divisa)).filter(
             ImpEst.Reserva == av.Reserva,
             ImpEst.LineaReserva == av.Linea
         ).correlate(av).scalar_subquery()
-        
+
         moneda_subquery = db.session.query(func.max(va.DivisaFac)).filter(
             va.Reserva == av.Reserva,
             va.LineaReserva == av.Linea
         ).correlate(av).scalar_subquery()
 
-
-
+        # ---- Query principal ----
         query = db.session.query(
             av.HotelFactura.label('Hotel'),
             av.Reserva.label('Reserva'),
@@ -1102,7 +1100,6 @@ def arrivals_AvalonP(page=1, rows=10):
                 valoracion_mxn_subquery,
                 estancia_mxn_subquery
             ).label('Importe'),
-            # ea.DivisaFacturas.label('Moneda'),
             func.coalesce(moneda_subquery_externa, moneda_subquery, moneda_subquery_estancia).label('Moneda'),
             av.Tarifa,
             av.AltaUsuario.label('CapU'),
@@ -1117,7 +1114,8 @@ def arrivals_AvalonP(page=1, rows=10):
         ).join(
             cma, (cma.Reserva == av.Reserva) & (cma.Linea == av.Linea) & (cma.Texto.like('Voucher%')), isouter=True
         )
-        
+
+        # ---- Filtros ----
         if confirmacion:
             query = query.filter(av.Reserva == confirmacion)
         else:
@@ -1132,57 +1130,14 @@ def arrivals_AvalonP(page=1, rows=10):
                 query = query.filter(ada.Estado.in_(estados_list))
             if capu:
                 query = query.filter(av.AltaUsuario == capu)
-            if entidades_list: 
+            if entidades_list:
                 query = query.filter(av.Entidad.in_(entidades_list))
 
         query = query.filter(ada.Linea != -1).order_by(av.HotelFactura, ada.FechaEntrada, av.Reserva, av.Linea)
 
-        if request.form.get('excel') == 'true':
-            df = pandas.DataFrame([{
-                    'Hotel Factura': item.Hotel,
-                    'Hotel': item.HotelUso,
-                    'Reserva': item.Reserva,
-                    'Linea': item.Linea,
-                    'Clientes': item.Clientes,
-                    'Nombre': item.Nombre,
-                    'Localizador': item.Localizador,
-                    'Segmento': item.Segmento,
-                    'Agencia': item.Agencia,
-                    'Grupo': item.Grupo,
-                    'Canal': item.Canal,
-                    'Entrada': item.Entrada,
-                    'Salida': item.Salida,
-                    'Nts': item.Nts,
-                    'Estado': item.Estado,
-                    'Ad': item.AD,
-                    'Jr': item.JR,
-                    'Ni': item.NI,
-                    'Cu': item.CU,
-                    'Regim': item.Regim,
-                    'Habi': item.Habi,
-                    'TH': item.th,
-                    'Importe': item.Importe,
-                    'Moneda': item.Moneda,
-                    'Tarifa': item.Tarifa,
-                    'Oferta': item.Oferta,
-                    'Bono': item.Bono,
-                    'Estancia': item.Estancia,
-                    'Salida Estimada': item.SalidaEstimada,
-                    'Fecha venta': item.venta,
-                    'CapU': item.CapU,
-                    'Nac': item.Nac,
-                    'Texto': item.Comentario
-            } for item in query.all()])
-            
-            output = BytesIO()
-            with pandas.ExcelWriter(output, engine='xlsxwriter') as writer:
-                df.to_excel(writer, sheet_name='Llegadas_avalon', index=False)
-            output.seek(0)
-            return send_file(output, download_name='Llegadas_avalon.xlsx', as_attachment=True, mimetype='application/vnd.ms-excel')
         try:
-            data_paginated = query.paginate(page=page, per_page=rows)
-            if data_paginated.items:
-                info['pagination'] = pagination(data_paginated)
+            items = query.all()
+            if items:
                 data = [{
                     'Hotel Factura': item.Hotel,
                     'Hotel': item.HotelUso,
@@ -1217,7 +1172,8 @@ def arrivals_AvalonP(page=1, rows=10):
                     'CapU': item.CapU,
                     'Nac': item.Nac,
                     'Texto': item.Comentario
-                } for item in data_paginated.items]
+                } for item in items]
+                info['count'] = len(data)
                 _code = 200
             else:
                 _code = 404
