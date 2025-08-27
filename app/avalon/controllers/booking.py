@@ -969,6 +969,8 @@ def arrivals_AvalonP():
 
         fechafin = request.form.get('fechafin', '').strip()
         fechaini = request.form.get('fechaini', '').strip()
+        fechafinS = request.form.get('fechafinS', '').strip()
+        fechainiS = request.form.get('fechainiS', '').strip()
         confirmacion = request.form.get('confirmacion', '').strip()
         segmento = 'OTLC'
         estado = request.form.get('estado', '').strip()
@@ -1122,6 +1124,11 @@ def arrivals_AvalonP():
             if fechaini and fechafin:
                 query = query.filter(ada.FechaEntrada >= fechaini, ada.FechaEntrada <= fechafin)
             elif fechaini and not fechafin:
+                error_message = {'error': 'Debe seleccionar una fecha de fin'}
+                return jsonify({'code': 400, 'data': [], 'info': {}, 'msg': error_message})
+            if fechainiS and fechafinS:
+                query = query.filter(ada.FechaSalida >= fechainiS, ada.FechaSalida <= fechafinS)
+            elif fechainiS and not fechafinS:
                 error_message = {'error': 'Debe seleccionar una fecha de fin'}
                 return jsonify({'code': 400, 'data': [], 'info': {}, 'msg': error_message})
             if segmento:
