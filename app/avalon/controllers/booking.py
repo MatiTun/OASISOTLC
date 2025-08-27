@@ -1015,13 +1015,14 @@ def arrivals_AvalonP():
         )
 
         nombre_subquery = (
-            db.session.query(
-                func.concat(
-                    ca.Nombre, ' ',
-                    ca.Apellido1, ' ',
-                    ca.Apellido2
-                )
-            )
+            db.session.query(ca.Nombre)
+            .filter(ca.Reserva == av.Reserva, ca.Linea == av.Linea, ca.Numero == numero_min_subquery)
+            .correlate(av)
+            .as_scalar()
+        )
+
+        apellido1_subquery = (
+            db.session.query(ca.Apellido1)
             .filter(ca.Reserva == av.Reserva, ca.Linea == av.Linea, ca.Numero == numero_min_subquery)
             .correlate(av)
             .as_scalar()
@@ -1108,8 +1109,8 @@ def arrivals_AvalonP():
             func.coalesce(av.Nacionalidad, func.substring(av.Segmento, 1, 3)).label('Nac'),
             av.TextoReserva.label('Comentario'),
             clientes_subquery.label('Clientes'),
-            ca.Nombre.label('Nombre'), 
-            ca.Apellido1.label('Apellido')
+            nombre_subquery.label('Nombre'),
+            apellido1_subquery.label('Apellido')
         ).join(
             ada, (ada.Reserva == av.Reserva) & (ada.Linea == av.Linea), isouter=True
         ).join(
@@ -1153,6 +1154,7 @@ def arrivals_AvalonP():
                     'Linea': item.Linea,
                     'Clientes': item.Clientes,
                     'Nombre': item.Nombre,
+                    'Apellido': item.Apellido, 
                     'Localizador': item.Localizador,
                     'Segmento': item.Segmento,
                     'Agencia': item.Agencia,
