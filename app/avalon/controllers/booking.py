@@ -1108,7 +1108,8 @@ def arrivals_AvalonP():
             func.coalesce(av.Nacionalidad, func.substring(av.Segmento, 1, 3)).label('Nac'),
             av.TextoReserva.label('Comentario'),
             clientes_subquery.label('Clientes'),
-            nombre_subquery.label('Nombre')
+            ca.Nombre.label('Nombre'), 
+            ca.Apellido1.label('Apellido')
         ).join(
             ada, (ada.Reserva == av.Reserva) & (ada.Linea == av.Linea), isouter=True
         ).join(
