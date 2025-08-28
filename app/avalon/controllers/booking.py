@@ -1108,6 +1108,7 @@ def arrivals_AvalonP():
             av.AltaUsuario.label('CapU'),
             func.coalesce(av.Nacionalidad, func.substring(av.Segmento, 1, 3)).label('Nac'),
             av.TextoReserva.label('Comentario'),
+            cma.Texto.label('Comentario2'),
             clientes_subquery.label('Clientes'),
             nombre_subquery.label('Nombre'),
             apellido1_subquery.label('Apellido')
@@ -1181,7 +1182,7 @@ def arrivals_AvalonP():
                     'Fecha venta': item.venta,
                     'CapU': item.CapU,
                     'Nac': item.Nac,
-                    'Texto': item.Comentario
+                    'Texto': item.Comentario2 if item.Comentario2 else item.Comentario
                 } for item in items]
                 info['count'] = len(data)
                 _code = 200
