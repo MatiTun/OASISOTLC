@@ -169,7 +169,7 @@ def arrivals_Avalon(page=1, rows=10):
         ).join(
             ea, ea.Entidad == av.Entidad, isouter=True
         ).join(
-            cma, (cma.Reserva == av.Reserva) & (cma.Linea == av.Linea) & (cma.Texto.like('Voucher%')), isouter=True
+            cma, (cma.Reserva == av.Reserva) & (cma.Linea == av.Linea) , isouter=True
         )
         
         if confirmacion:
@@ -227,7 +227,7 @@ def arrivals_Avalon(page=1, rows=10):
                     'Fecha venta': item.venta,
                     'CapU': item.CapU,
                     'Nac': item.Nac,
-                    'Texto': item.Comentario2 
+                    'Texto': item.Comentario2 if item.Comentario2 else item.Comentario
             } for item in query.all()])
             
             output = BytesIO()
@@ -272,7 +272,7 @@ def arrivals_Avalon(page=1, rows=10):
                     'Fecha venta': item.venta,
                     'CapU': item.CapU,
                     'Nac': item.Nac,
-                    'Texto': item.Comentario2 
+                    'Texto': item.Comentario2 if item.Comentario2 else item.Comentario
                 } for item in data_paginated.items]
                 _code = 200
             else:
@@ -1118,7 +1118,7 @@ def arrivals_AvalonP():
         ).join(
             ea, ea.Entidad == av.Entidad, isouter=True
         ).join(
-            cma, (cma.Reserva == av.Reserva) & (cma.Linea == av.Linea) & (cma.Texto.like('Voucher%')), isouter=True
+             cma, (cma.Reserva == av.Reserva) & (cma.Linea == av.Linea) , isouter=True
         )
 
         # ---- Filtros ----
