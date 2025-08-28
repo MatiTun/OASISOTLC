@@ -161,6 +161,7 @@ def arrivals_Avalon(page=1, rows=10):
             av.AltaUsuario.label('CapU'),
             func.coalesce(av.Nacionalidad, func.substring(av.Segmento, 1, 3)).label('Nac'),
             av.TextoReserva.label('Comentario'),
+            cma.Texto.label('Comentario2'),
             clientes_subquery.label('Clientes'),
             nombre_subquery.label('Nombre')
         ).join(
@@ -226,7 +227,7 @@ def arrivals_Avalon(page=1, rows=10):
                     'Fecha venta': item.venta,
                     'CapU': item.CapU,
                     'Nac': item.Nac,
-                    'Texto': item.Comentario
+                     'Texto': item.Comentario2 if item.Comentario2 else item.Comentario
             } for item in query.all()])
             
             output = BytesIO()
@@ -271,7 +272,7 @@ def arrivals_Avalon(page=1, rows=10):
                     'Fecha venta': item.venta,
                     'CapU': item.CapU,
                     'Nac': item.Nac,
-                    'Texto': item.Comentario
+                     'Texto': item.Comentario2 if item.Comentario2 else item.Comentario
                 } for item in data_paginated.items]
                 _code = 200
             else:
