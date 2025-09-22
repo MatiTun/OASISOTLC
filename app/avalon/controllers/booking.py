@@ -659,7 +659,7 @@ def reservas_paraty():
             av.AltaUsuario.label('CapU'),
             func.coalesce(av.Nacionalidad, func.substring(av.Segmento, 1, 3)).label('Nac'),
             av.TextoReserva.label('Comentario'),
-            # cma.Texto.label('Comentario2'),
+            cma.Texto.label('Comentario2'),
             nombre_subquery.label('Nombre')
         ).join(
             ada, (ada.Reserva == av.Reserva) & (ada.Linea == av.Linea), isouter=True
@@ -692,8 +692,7 @@ def reservas_paraty():
                 'importe': float(item.Importe) if item.Importe else 0,
                 'moneda': item.Moneda,
                 'tarifa_desc': item.Tarifa,
-                'Texto': item.Comentario,
-                # 'Texto': item.Comentario2 if item.Comentario2 else item.Comentario,
+                'Texto': item.Comentario2 if item.Comentario2 else item.Comentario,
                 'capu': item.CapU,
                 'segmento': item.Segmento,
                 'entidad': item.Entidad,
