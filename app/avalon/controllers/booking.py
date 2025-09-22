@@ -666,7 +666,7 @@ def reservas_paraty():
         ).join(
             ea, ea.Entidad == av.Entidad, isouter=True
         ).join(
-            cma, (cma.Reserva == av.Reserva) & (cma.Linea == av.Linea) & (cma.Texto.like('Voucher%')), isouter=True
+            cma, (cma.Reserva == av.Reserva) & (cma.Linea == av.Linea), isouter=True
         ).filter(
             av.Localizador == unique_id,
             ada.Linea != -1
