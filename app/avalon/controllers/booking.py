@@ -568,8 +568,8 @@ def reservas_paraty():
         nombre_subquery = (
             db.session.query(
                 func.concat(
-                    ca.Nombre, ' ',
-                    ca.Apellido1, ' ',
+                    ca.Nombre,'',
+                    ca.Apellido1,'',
                     ca.Apellido2
                 )
             )
