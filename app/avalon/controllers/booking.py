@@ -692,7 +692,7 @@ def reservas_paraty():
                 'importe': float(item.Importe) if item.Importe else 0,
                 'moneda': item.Moneda,
                 'tarifa_desc': item.Tarifa,
-                'Texto': item.Comentario2 if item.Comentario2 else item.Comentario,
+                'Texto': item.Comentario2,
                 'capu': item.CapU,
                 'segmento': item.Segmento,
                 'entidad': item.Entidad,
