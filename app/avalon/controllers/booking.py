@@ -1486,7 +1486,7 @@ def _error(code, message):
     return Response(json.dumps(payload, default=str),
                     mimetype="application/json", status=code)
 
-@arrivals.route("/reservas/consulta", methods=["POST"])
+@arrivals.route('/reservas/consulta', methods=['POST'])
 def reservas_consulta():
     """
     Body JSON:
