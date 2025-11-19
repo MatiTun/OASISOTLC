@@ -1858,7 +1858,7 @@ def grupos_consulta():
     base_select = r"""
         WITH Filtrado AS (
             SELECT r.Reserva, r.Linea, r.HotelFactura, r.Segmento, rd.Estado,
-                rd.FechaEntrada, rd.FechaSalida, r.Oferta
+                rd.FechaEntrada, rd.FechaSalida, r.Oferta, r.Tarifa, r.NombreContacto
             FROM dbo.RECReservas AS r
             JOIN dbo.RECReservasDetalle AS rd
             ON r.Reserva = rd.Reserva AND rd.Linea = r.Linea
