@@ -1862,7 +1862,7 @@ def grupos_consulta():
             FROM dbo.RECReservas AS r
             JOIN dbo.RECReservasDetalle AS rd
             ON r.Reserva = rd.Reserva AND rd.Linea = r.Linea
-            WHERE 1=1 and (Localizador like 'G-%' or Localizador'B-%')
+            WHERE 1=1 
         ),
         OAS_VAL AS (
             SELECT rv.Reserva, rv.LineaReserva AS Linea,
@@ -2032,6 +2032,8 @@ def grupos_consulta():
     where_clauses = ["1=1"]
     params = {}
     bind_list = []
+    where_clauses.append("(r.Localizador LIKE 'G-%' OR r.Localizador LIKE 'B-%')")
+
 
     if isinstance(reservas, list) and reservas:
         where_clauses.append("r.Reserva IN :reservas")
