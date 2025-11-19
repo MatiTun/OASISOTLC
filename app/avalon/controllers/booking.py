@@ -1552,7 +1552,7 @@ def reservas_consulta():
     base_select = r"""
         WITH Filtrado AS (
             SELECT r.Reserva, r.Linea, r.HotelFactura, r.Segmento, rd.Estado,
-                rd.FechaEntrada, rd.FechaSalida
+                rd.FechaEntrada, rd.FechaSalida, r.Oferta
             FROM dbo.RECReservas AS r
             JOIN dbo.RECReservasDetalle AS rd
             ON r.Reserva = rd.Reserva AND rd.Linea = r.Linea
