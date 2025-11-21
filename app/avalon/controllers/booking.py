@@ -1726,6 +1726,7 @@ def reservas_consulta():
     where_clauses = ["1=1"]
     params = {}
     bind_list = []
+    where_clauses.append("(r.Localizador NOT LIKE 'G-%' AND r.Localizador NOT LIKE 'B-%'  AND r.Localizador NOT LIKE 'FT-%')")
 
     if isinstance(reservas, list) and reservas:
         where_clauses.append("r.Reserva IN :reservas")
@@ -2032,7 +2033,7 @@ def grupos_consulta():
     where_clauses = ["1=1"]
     params = {}
     bind_list = []
-    where_clauses.append("(r.Localizador LIKE 'G-%' OR r.Localizador LIKE 'B-%')")
+    where_clauses.append("(r.Localizador LIKE 'G-%' OR r.Localizador LIKE 'B-%' OR 'FT-%')")
 
 
     if isinstance(reservas, list) and reservas:
