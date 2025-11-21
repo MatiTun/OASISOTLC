@@ -1638,11 +1638,12 @@ def reservas_consulta():
             r.Segmento, rd.AD, rd.JR, rd.ni, rd.cu,
             (
                 SELECT STRING_AGG(
-                    rc.nombre + ' ' + rc.apellido1 + ISNULL(' ' + rc.apellido2, ''), ' | '
+                    rc2.nombre + ' ' + rc2.apellido1 + ISNULL(' ' + rc2.apellido2, ''), ' | '
                 )
-                FROM [AntforHotel-OAS].dbo.RECReservasClientes rc
-                WHERE rc.reserva = r.Reserva AND rc.linea = r.Linea
+                FROM [AntforHotel-OAS].dbo.RECReservasClientes rc2
+                WHERE rc2.reserva = r.Reserva AND rc2.linea = r.Linea
             ) AS ocupantes,
+            ISNULL(NULLIF(rc.Texto, ''), r.TextoReserva) AS Texto,
             rd.FechaEntrada, rd.FechaSalida, r.AltaFecha, r.VentaFecha,
             r.ModificacionFecha, rd.noches, r.Canal, r.AltaUsuario, r.CancelacionUsuario,
             (
@@ -1720,7 +1721,10 @@ def reservas_consulta():
         FROM dbo.RECReservas AS r
         JOIN dbo.RECReservasDetalle AS rd
             ON r.Reserva = rd.Reserva AND rd.Linea = r.Linea
+        LEFT JOIN dbo.RECReservasComentarios rc
+            ON rc.Reserva = r.Reserva
     """
+
 
     # WHERE dinámico
     where_clauses = ["1=1"]
@@ -1950,6 +1954,7 @@ def grupos_consulta():
                 FROM [AntforHotel-OAS].dbo.RECReservasClientes rc
                 WHERE rc.reserva = r.Reserva AND rc.linea = r.Linea
             ) AS ocupantes,
+            ISNULL(NULLIF(rc.Texto, ''), r.TextoReserva) AS Texto,
             rd.FechaEntrada, rd.FechaSalida, r.AltaFecha, r.VentaFecha,
             r.ModificacionFecha, rd.noches, r.Canal, r.AltaUsuario, r.CancelacionUsuario,
             (
@@ -2027,6 +2032,8 @@ def grupos_consulta():
         FROM dbo.RECReservas AS r
         JOIN dbo.RECReservasDetalle AS rd
             ON r.Reserva = rd.Reserva AND rd.Linea = r.Linea
+        LEFT JOIN dbo.RECReservasComentarios rc
+            ON rc.Reserva = r.Reserva
     """
 
     # WHERE dinámico
