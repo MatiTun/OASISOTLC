@@ -1643,6 +1643,15 @@ def reservas_consulta():
                 FROM [AntforHotel-OAS].dbo.RECReservasClientes rc2
                 WHERE rc2.reserva = r.Reserva AND rc2.linea = r.Linea
             ) AS ocupantes,
+            (
+            SELECT STRING_AGG(
+                CAST(rc2.Edad AS VARCHAR(3)), ','
+            )
+            FROM [AntforHotel-OAS].dbo.RECReservasClientes rc2
+            WHERE rc2.reserva = r.Reserva 
+            AND rc2.linea = r.Linea
+            AND rc2.Edad IS NOT NULL
+            ) AS edades,
             ISNULL(NULLIF(rc.Texto, ''), r.TextoReserva) AS Texto,
             rd.FechaEntrada, rd.FechaSalida, r.AltaFecha, r.VentaFecha,
             r.ModificacionFecha, rd.noches, r.Canal, r.AltaUsuario, r.CancelacionUsuario,
@@ -1954,6 +1963,15 @@ def grupos_consulta():
                 FROM [AntforHotel-OAS].dbo.RECReservasClientes rc
                 WHERE rc.reserva = r.Reserva AND rc.linea = r.Linea
             ) AS ocupantes,
+            (
+                SELECT STRING_AGG(
+                    CAST(rc2.Edad AS VARCHAR(3)), ','
+                )
+                FROM [AntforHotel-OAS].dbo.RECReservasClientes rc2
+                WHERE rc2.reserva = r.Reserva 
+                AND rc2.linea = r.Linea
+                AND rc2.Edad IS NOT NULL
+            ) AS edades,
             ISNULL(NULLIF(rc.Texto, ''), r.TextoReserva) AS Texto,
             rd.FechaEntrada, rd.FechaSalida, r.AltaFecha, r.VentaFecha,
             r.ModificacionFecha, rd.noches, r.Canal, r.AltaUsuario, r.CancelacionUsuario,
