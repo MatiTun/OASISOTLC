@@ -2033,7 +2033,7 @@ def grupos_consulta():
     where_clauses = ["1=1"]
     params = {}
     bind_list = []
-    where_clauses.append("(r.Localizador LIKE 'G-%' OR r.Localizador LIKE 'B-%' OR 'FT-%')")
+    where_clauses.append("(r.Localizador LIKE 'G-%' OR r.Localizador LIKE 'B-%' OR r.Localizador LIKE 'FT-%')")
 
 
     if isinstance(reservas, list) and reservas:
