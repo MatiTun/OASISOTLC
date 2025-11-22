@@ -1486,6 +1486,10 @@ def _error(code, message):
     return Response(json.dumps(payload, default=str),
                     mimetype="application/json", status=code)
 
+from datetime import datetime, timedelta
+from flask import request, current_app
+from sqlalchemy import text, bindparam
+
 @arrivals.route('/reservas/consulta', methods=['POST'])
 def reservas_consulta():
     """
@@ -1508,7 +1512,9 @@ def reservas_consulta():
     fi_raw = body.get("fechaEntradaIni")
     ff_raw = body.get("fechaEntradaFin")
 
-    # Normalizaciones
+    # === Normalizaciones ===
+
+    # hotel -> lista de hoteles
     if isinstance(hotel, str) and hotel.strip():
         hoteles = [hotel.strip()]
     elif isinstance(hotel, list):
@@ -1516,6 +1522,7 @@ def reservas_consulta():
     else:
         hoteles = []
 
+    # segmento -> lista limpia
     if not isinstance(segmento, list):
         segmento = [segmento] if segmento else []
     segmento = [str(s).strip() for s in segmento if str(s).strip()]
@@ -1536,7 +1543,7 @@ def reservas_consulta():
         except Exception:
             estados = []
 
-    # Fechas (inclusive): usamos >= ini y < fin+1día
+    # Fechas (fin inclusivo): usamos >= ini y < fin+1día
     fi = None
     ff_plus = None
     try:
@@ -1548,7 +1555,6 @@ def reservas_consulta():
         return _error(400, "Las fechas deben tener formato 'YYYY-MM-DD'.")
 
     # --- BASE SELECT + CTEs para precios por noche ---
-    
     base_select = r"""
         WITH Filtrado AS (
             SELECT r.Reserva, r.Linea, r.HotelFactura, r.Segmento, rd.Estado,
@@ -1731,15 +1737,20 @@ def reservas_consulta():
         JOIN dbo.RECReservasDetalle AS rd
             ON r.Reserva = rd.Reserva AND rd.Linea = r.Linea
         LEFT JOIN dbo.RECReservasComentarios rc
-            ON rc.Reserva = r.Reserva
+            ON rc.Reserva = r.Reserva AND rc.Linea = r.Linea
     """
 
-
-    # WHERE dinámico
+    # === WHERE dinámico ===
     where_clauses = ["1=1"]
     params = {}
     bind_list = []
-    where_clauses.append("(r.Localizador NOT LIKE 'G-%' AND r.Localizador NOT LIKE 'B-%'  AND r.Localizador NOT LIKE 'FT-%')")
+
+    # Excluir localizadores de grupo/bonos/etc.
+    where_clauses.append(
+        "(r.Localizador NOT LIKE 'G-%' "
+        "AND r.Localizador NOT LIKE 'B-%' "
+        "AND r.Localizador NOT LIKE 'FT-%')"
+    )
 
     if isinstance(reservas, list) and reservas:
         where_clauses.append("r.Reserva IN :reservas")
@@ -1766,8 +1777,12 @@ def reservas_consulta():
         params["fi"] = fi
 
     if ff_plus is not None:
+        # fin inclusivo: < fecha_fin + 1 día
         where_clauses.append("rd.FechaEntrada < :ff_plus")
         params["ff_plus"] = ff_plus
+
+    # Igual que en tu COUNT(*)
+    where_clauses.append("r.Linea > 0")
 
     sql_text = base_select + "\nWHERE " + " AND ".join(where_clauses) + """
         ORDER BY rd.FechaEntrada, r.Reserva, rd.Linea;
@@ -1802,9 +1817,9 @@ def reservas_consulta():
             data.append(_normalize_row(d))
 
         return _ok(data)
-
     except Exception as e:
         return _error(500, f"Error en la consulta: {e}")
+
 
 @arrivals.route('/grupos/consulta', methods=['POST'])
 def grupos_consulta():
@@ -2051,7 +2066,7 @@ def grupos_consulta():
         JOIN dbo.RECReservasDetalle AS rd
             ON r.Reserva = rd.Reserva AND rd.Linea = r.Linea
         LEFT JOIN dbo.RECReservasComentarios rc
-            ON rc.Reserva = r.Reserva
+            ON rc.Reserva = r.Reserva AND rc.Linea = r.Linea
     """
 
     # WHERE dinámico
