@@ -1751,6 +1751,7 @@ def reservas_consulta():
         "AND r.Localizador NOT LIKE 'B-%' "
         "AND r.Localizador NOT LIKE 'FT-%')"
     )
+    where_clauses.append("rd.Estado <> 4")
 
     if isinstance(reservas, list) and reservas:
         where_clauses.append("r.Reserva IN :reservas")
@@ -2058,6 +2059,330 @@ def grupos_consulta():
             LEFT JOIN MEX_FAC mf  ON mf.Reserva  = fu.Reserva AND mf.Linea  = fu.Linea AND mf.Fecha  = fu.Fecha
             LEFT JOIN EXT_PRE ex  ON ex.Reserva  = fu.Reserva AND ex.Linea  = fu.Linea AND ex.Fecha  = fu.Fecha
             WHERE fu.Reserva = r.Reserva AND fu.Linea = rd.Linea
+            ORDER BY fu.Fecha
+            FOR JSON PATH
+            ) AS precio_por_noche_json
+
+        FROM dbo.RECReservas AS r
+        JOIN dbo.RECReservasDetalle AS rd
+            ON r.Reserva = rd.Reserva AND rd.Linea = r.Linea
+        LEFT JOIN dbo.RECReservasComentarios rc
+            ON rc.Reserva = r.Reserva AND rc.Linea = r.Linea
+    """
+
+    # WHERE dinámico
+    where_clauses = ["1=1"]
+    params = {}
+    bind_list = []
+    where_clauses.append("(r.Localizador LIKE 'G-%' OR r.Localizador LIKE 'B-%' OR r.Localizador LIKE 'FT-%')")
+
+
+    if isinstance(reservas, list) and reservas:
+        where_clauses.append("r.Reserva IN :reservas")
+        params["reservas"] = reservas
+        bind_list.append(bindparam("reservas", expanding=True))
+
+    if hoteles:
+        where_clauses.append("r.HotelFactura IN :hoteles")
+        params["hoteles"] = hoteles
+        bind_list.append(bindparam("hoteles", expanding=True))
+
+    if segmento:
+        where_clauses.append("r.Segmento IN :segmento")
+        params["segmento"] = segmento
+        bind_list.append(bindparam("segmento", expanding=True))
+
+    if estados:
+        where_clauses.append("rd.Estado IN :estados")
+        params["estados"] = estados
+        bind_list.append(bindparam("estados", expanding=True))
+
+    if fi is not None:
+        where_clauses.append("rd.FechaEntrada >= :fi")
+        params["fi"] = fi
+
+    if ff_plus is not None:
+        where_clauses.append("rd.FechaEntrada < :ff_plus")
+        params["ff_plus"] = ff_plus
+
+    sql_text = base_select + "\nWHERE " + " AND ".join(where_clauses) + """
+        ORDER BY rd.FechaEntrada, r.Reserva, rd.Linea;
+    """
+
+    sql = text(sql_text)
+    if bind_list:
+        sql = sql.bindparams(*bind_list)
+
+    try:
+        engine = db.get_engine(current_app, bind="AVALON")
+        with engine.connect() as conn:
+            rows = conn.execute(sql, params).mappings().all()
+
+        def _parse_json_field(v):
+            if v is None:
+                return []
+            if isinstance(v, (bytes, bytearray)):
+                v = v.decode("utf-8", errors="ignore")
+            if isinstance(v, str):
+                try:
+                    return json.loads(v)
+                except Exception:
+                    return []
+            return v
+
+        data = []
+        for r in rows:
+            d = dict(r)
+            # Parsear el JSON por noche
+            d["precio_por_noche"] = _parse_json_field(d.pop("precio_por_noche_json", None))
+            data.append(_normalize_row(d))
+
+        return _ok(data)
+
+    except Exception as e:
+        return _error(500, f"Error en la consulta: {e}")
+    
+    
+@arrivals.route('/casa/consulta', methods=['POST'])
+def casa_consulta():
+    """
+    Body JSON:
+    {
+      "reservas": ["GOCRS250361721","GOCRS250341882"],
+      "hotel": "HT01",                 // o ["HT01","HT02"]
+      "segmento": ["WEB","TA"],        // lista
+      "estado": [0,1,4],               // número o lista (0..4)
+      "fechaEntradaIni": "2025-06-01",
+      "fechaEntradaFin": "2025-06-30"
+    }
+    """
+    body = request.get_json(silent=True) or {}
+
+    reservas = body.get("reservas") or []
+    hotel = body.get("hotel")
+    segmento = body.get("segmento") or []
+    estado = body.get("estado")
+    fi_raw = body.get("fechaEntradaIni")
+    ff_raw = body.get("fechaEntradaFin")
+
+    # Normalizaciones
+    if isinstance(hotel, str) and hotel.strip():
+        hoteles = [hotel.strip()]
+    elif isinstance(hotel, list):
+        hoteles = [str(h).strip() for h in hotel if str(h).strip()]
+    else:
+        hoteles = []
+
+    if not isinstance(segmento, list):
+        segmento = [segmento] if segmento else []
+    segmento = [str(s).strip() for s in segmento if str(s).strip()]
+
+    # estado puede venir como int o lista
+    if estado is None:
+        estados = []
+    elif isinstance(estado, list):
+        estados = []
+        for e in estado:
+            try:
+                estados.append(int(e))
+            except Exception:
+                pass
+    else:
+        try:
+            estados = [int(estado)]
+        except Exception:
+            estados = []
+
+    # Fechas (inclusive): usamos >= ini y < fin+1día
+    fi = None
+    ff_plus = None
+    try:
+        if fi_raw:
+            fi = datetime.strptime(fi_raw, "%Y-%m-%d")
+        if ff_raw:
+            ff_plus = datetime.strptime(ff_raw, "%Y-%m-%d") + timedelta(days=1)
+    except Exception:
+        return _error(400, "Las fechas deben tener formato 'YYYY-MM-DD'.")
+
+    # --- BASE SELECT + CTEs para precios por noche ---
+    
+    base_select = r"""
+        WITH Filtrado AS (
+            SELECT r.Reserva, r.Linea, r.HotelFactura, r.Segmento, rd.Estado,
+                rd.FechaEntrada, rd.FechaSalida, r.Oferta
+            FROM dbo.RECReservas AS r
+            JOIN dbo.RECReservasDetalle AS rd
+            ON r.Reserva = rd.Reserva AND rd.Linea = r.Linea
+            WHERE 1=1
+              AND rd.Estado = 1  -- <<< SOLO RESERVAS EN ESTADO 1 (Check In)
+        ),
+        OAS_VAL AS (
+            SELECT rv.Reserva, rv.LineaReserva AS Linea,
+                CONVERT(date, rv.Fecha) AS Fecha,
+                SUM(rv.precioFAC) AS monto_oas
+            FROM [AntforHotel-OAS].dbo.RECReservasValoracion rv
+            JOIN Filtrado f ON f.Reserva = rv.Reserva AND f.Linea = rv.LineaReserva
+            GROUP BY rv.Reserva, rv.LineaReserva, CONVERT(date, rv.Fecha)
+        ),
+        PAN_VAL AS (
+            SELECT rv.Reserva, rv.LineaReserva AS Linea,
+                CONVERT(date, rv.Fecha) AS Fecha,
+                SUM(rv.precioFAC) AS monto_pan_val
+            FROM [AntforHotel-PANAMA].dbo.RECReservasValoracion rv
+            JOIN Filtrado f ON f.Reserva = rv.Reserva AND f.Linea = rv.LineaReserva
+            GROUP BY rv.Reserva, rv.LineaReserva, CONVERT(date, rv.Fecha)
+        ),
+        -- SIN cantidad: usar solo importe
+        PAN_FAC AS (
+            SELECT fd.Reserva, fd.LineaReserva AS Linea,
+                CONVERT(date, fd.Fecha) AS Fecha,
+                SUM(fd.importe) AS monto_pan_fac
+            FROM [AntforHotel-PANAMA].dbo.FACFacturasDetalle fd
+            JOIN Filtrado f ON f.Reserva = fd.Reserva AND f.Linea = fd.LineaReserva
+            GROUP BY fd.Reserva, fd.LineaReserva, CONVERT(date, fd.Fecha)
+        ),
+        MEX_VAL AS (
+            SELECT rv.Reserva, rv.LineaReserva AS Linea,
+                CONVERT(date, rv.Fecha) AS Fecha,
+                SUM(rv.precioFAC) AS monto_mex_val
+            FROM [AntforHotel-MEXICO].dbo.RECReservasValoracion rv
+            JOIN Filtrado f ON f.Reserva = rv.Reserva AND f.Linea = rv.LineaReserva
+            GROUP BY rv.Reserva, rv.LineaReserva, CONVERT(date, rv.Fecha)
+        ),
+        -- SIN cantidad: usar solo importe
+        MEX_FAC AS (
+            SELECT fd.Reserva, fd.LineaReserva AS Linea,
+                CONVERT(date, fd.Fecha) AS Fecha,
+                SUM(fd.importe) AS monto_mex_fac
+            FROM [AntforHotel-MEXICO].dbo.FACFacturasDetalle fd
+            JOIN Filtrado f ON f.Reserva = fd.Reserva AND f.Linea = fd.LineaReserva
+            GROUP BY fd.Reserva, fd.LineaReserva, CONVERT(date, fd.Fecha)
+        ),
+        -- SIN cantidad: usar solo importe
+        EXT_PRE AS (
+            SELECT pe.Reserva, pe.linea AS Linea,
+                CONVERT(date, pe.Fecha) AS Fecha,
+                SUM(pe.importe) AS monto_ext
+            FROM dbo.RECReservasPreciosExterno pe
+            JOIN Filtrado f ON f.Reserva = pe.Reserva AND f.Linea = pe.linea
+            GROUP BY pe.Reserva, pe.linea, CONVERT(date, pe.Fecha)
+        ),
+        FECHAS_UNION AS (
+            SELECT Reserva, Linea, Fecha FROM OAS_VAL
+            UNION
+            SELECT Reserva, Linea, Fecha FROM PAN_VAL
+            UNION
+            SELECT Reserva, Linea, Fecha FROM PAN_FAC
+            UNION
+            SELECT Reserva, Linea, Fecha FROM MEX_VAL
+            UNION
+            SELECT Reserva, Linea, Fecha FROM MEX_FAC
+            UNION
+            SELECT Reserva, Linea, Fecha FROM EXT_PRE
+        )
+
+        SELECT
+            r.Reserva, rd.Linea, r.Localizador, r.Entidad, r.EntidadNegocio, r.Grupo,
+            r.HotelFactura, r.THFactura, rd.HotelUso, rd.THUso, r.RegimenFactura,
+            r.Tarifa, r.Oferta, r.bono,r.NombreContacto,
+            CASE 
+                WHEN rd.Estado = 0 THEN '0:Activa' 
+                WHEN rd.Estado = 1 THEN '1:Check In' 
+                WHEN rd.Estado = 2 THEN '2:Check Out' 
+                WHEN rd.Estado = 3 THEN '3:No Show' 
+                WHEN rd.Estado = 4 THEN '4:Cancel' 
+                ELSE NULL 
+            END AS Estado,
+            r.Segmento, rd.AD, rd.JR, rd.ni, rd.cu,
+            (
+                SELECT STRING_AGG(
+                    rc.nombre + ' ' + rc.apellido1 + ISNULL(' ' + rc.apellido2, ''), ' | '
+                )
+                FROM [AntforHotel-OAS].dbo.RECReservasClientes rc
+                WHERE rc.reserva = r.Reserva AND rc.linea = r.Linea
+            ) AS ocupantes,
+            (
+                SELECT STRING_AGG(
+                    CAST(rc2.Edad AS VARCHAR(3)), ','
+                )
+                FROM [AntforHotel-OAS].dbo.RECReservasClientes rc2
+                WHERE rc2.reserva = r.Reserva 
+                AND rc2.linea = r.Linea
+                AND rc2.Edad IS NOT NULL
+            ) AS edades,
+            ISNULL(NULLIF(rc.Texto, ''), r.TextoReserva) AS Texto,
+            rd.FechaEntrada, rd.FechaSalida, r.AltaFecha, r.VentaFecha,
+            r.ModificacionFecha, rd.noches, r.Canal, r.AltaUsuario, r.CancelacionUsuario,
+            (
+                SELECT DISTINCT TOP 1 DivisaFac
+                FROM [AntforHotel-OAS].dbo.RECReservasValoracion
+                WHERE Reserva = r.Reserva AND LineaReserva = rd.Linea
+            ) AS divisa,
+
+            -- Totales globales (igual que antes)
+            ISNULL((
+                SELECT SUM(precioFAC)
+                FROM [AntforHotel-OAS].dbo.RECReservasValoracion
+                WHERE Reserva = r.Reserva AND LineaReserva = rd.Linea
+                GROUP BY Reserva, LineaReserva
+            ), (
+                SELECT SUM(Precio)
+                FROM [AntforHotel-OAS].dbo.PRODetalleEstancia de
+                WHERE de.Reserva = r.Reserva AND de.LineaReserva = rd.Linea
+                GROUP BY de.Reserva
+            )) AS precio_hotel,
+
+            (SELECT SUM(precioFAC)
+            FROM [AntforHotel-PANAMA].dbo.RECReservasValoracion
+            WHERE Reserva = r.Reserva AND LineaReserva = rd.Linea
+            GROUP BY Reserva, LineaReserva) AS precio_panama,
+
+            (SELECT SUM(importe)
+            FROM [AntforHotel-PANAMA].dbo.FACFacturasDetalle
+            WHERE Reserva = r.Reserva AND LineaReserva = rd.Linea) AS precio_fac_panama,
+
+            (SELECT SUM(precioFAC)
+            FROM [AntforHotel-MEXICO].dbo.RECReservasValoracion
+            WHERE Reserva = r.Reserva AND LineaReserva = rd.Linea
+            GROUP BY Reserva, LineaReserva) AS precio_mexico,
+
+            (SELECT SUM(importe)
+            FROM [AntforHotel-MEXICO].dbo.FACFacturasDetalle
+            WHERE Reserva = r.Reserva AND LineaReserva = rd.Linea) AS precio_fac_mexico,
+
+            (SELECT SUM(importe)
+            FROM dbo.RECReservasPreciosExterno pe
+            WHERE pe.Reserva = r.Reserva AND pe.linea = r.linea
+            GROUP BY pe.Reserva, pe.linea) AS precio_externo,
+
+            -- JSON por noche (solo fechas >= 2025-11-24)
+            (
+            SELECT
+                fu.Fecha,
+                ROUND(
+                ISNULL(oas.monto_oas,0) +
+                ISNULL(pv.monto_pan_val,0) +
+                ISNULL(pf.monto_pan_fac,0) +
+                ISNULL(mv.monto_mex_val,0) +
+                ISNULL(mf.monto_mex_fac,0) +
+                ISNULL(ex.monto_ext,0), 4
+                ) AS monto_total,
+                ISNULL(oas.monto_oas,0)      AS monto_oas,
+                ISNULL(pv.monto_pan_val,0)   AS monto_panama_val,
+                ISNULL(pf.monto_pan_fac,0)   AS monto_panama_fac,
+                ISNULL(mv.monto_mex_val,0)   AS monto_mexico_val,
+                ISNULL(mf.monto_mex_fac,0)   AS monto_mexico_fac,
+                ISNULL(ex.monto_ext,0)       AS monto_externo
+            FROM FECHAS_UNION fu
+            LEFT JOIN OAS_VAL oas ON oas.Reserva = fu.Reserva AND oas.Linea = fu.Linea AND oas.Fecha = fu.Fecha
+            LEFT JOIN PAN_VAL pv  ON pv.Reserva  = fu.Reserva AND pv.Linea  = fu.Linea AND pv.Fecha  = fu.Fecha
+            LEFT JOIN PAN_FAC pf  ON pf.Reserva  = fu.Reserva AND pf.Linea  = fu.Linea AND pf.Fecha  = fu.Fecha
+            LEFT JOIN MEX_VAL mv  ON mv.Reserva  = fu.Reserva AND mv.Linea  = fu.Linea AND mv.Fecha  = fu.Fecha
+            LEFT JOIN MEX_FAC mf  ON mf.Reserva  = fu.Reserva AND mf.Linea  = fu.Linea AND mf.Fecha  = fu.Fecha
+            LEFT JOIN EXT_PRE ex  ON ex.Reserva  = fu.Reserva AND ex.Linea  = fu.Linea AND ex.Fecha  = fu.Fecha
+            WHERE fu.Reserva = r.Reserva 
+              AND fu.Linea   = rd.Linea
+              AND fu.Fecha  >= '2025-11-24'   -- <<< SOLO NOCHES DESDE 24-11-2025
             ORDER BY fu.Fecha
             FOR JSON PATH
             ) AS precio_por_noche_json
