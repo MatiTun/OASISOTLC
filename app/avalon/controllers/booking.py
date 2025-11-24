@@ -2396,7 +2396,7 @@ def casa_consulta():
     params = {}
     bind_list = []
     where_clauses.append("(r.Localizador LIKE 'G-%' OR r.Localizador LIKE 'B-%' OR r.Localizador LIKE 'FT-%')")
-    where_clauses.append("(r.FechaSalida > '2025-11-24')")
+    where_clauses.append("(rd.FechaSalida > '2025-11-24')")
 
     if isinstance(reservas, list) and reservas:
         where_clauses.append("r.Reserva IN :reservas")
