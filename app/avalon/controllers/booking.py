@@ -1747,10 +1747,14 @@ def reservas_consulta():
 
     # Excluir localizadores de grupo/bonos/etc.
     where_clauses.append(
+        "("
+        "r.Localizador IS NULL OR "
         "(r.Localizador NOT LIKE 'G-%' "
         "AND r.Localizador NOT LIKE 'B-%' "
         "AND r.Localizador NOT LIKE 'FT-%')"
+        ")"
     )
+
     where_clauses.append("rd.Estado <> 4")
 
     if isinstance(reservas, list) and reservas:
@@ -1816,6 +1820,7 @@ def reservas_consulta():
             # Parsear el JSON por noche
             d["precio_por_noche"] = _parse_json_field(d.pop("precio_por_noche_json", None))
             data.append(_normalize_row(d))
+            
 
         return _ok(data)
     except Exception as e:
