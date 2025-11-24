@@ -2213,8 +2213,7 @@ def casa_consulta():
             FROM dbo.RECReservas AS r
             JOIN dbo.RECReservasDetalle AS rd
             ON r.Reserva = rd.Reserva AND rd.Linea = r.Linea
-            WHERE 1=1
-              AND rd.Estado = 1  -- <<< SOLO RESERVAS EN ESTADO 1 (Check In)
+            WHERE 1=1 
         ),
         OAS_VAL AS (
             SELECT rv.Reserva, rv.LineaReserva AS Linea,
@@ -2355,7 +2354,7 @@ def casa_consulta():
             WHERE pe.Reserva = r.Reserva AND pe.linea = r.linea
             GROUP BY pe.Reserva, pe.linea) AS precio_externo,
 
-            -- JSON por noche (solo fechas >= 2025-11-24)
+            -- JSON por noche
             (
             SELECT
                 fu.Fecha,
@@ -2380,9 +2379,7 @@ def casa_consulta():
             LEFT JOIN MEX_VAL mv  ON mv.Reserva  = fu.Reserva AND mv.Linea  = fu.Linea AND mv.Fecha  = fu.Fecha
             LEFT JOIN MEX_FAC mf  ON mf.Reserva  = fu.Reserva AND mf.Linea  = fu.Linea AND mf.Fecha  = fu.Fecha
             LEFT JOIN EXT_PRE ex  ON ex.Reserva  = fu.Reserva AND ex.Linea  = fu.Linea AND ex.Fecha  = fu.Fecha
-            WHERE fu.Reserva = r.Reserva 
-              AND fu.Linea   = rd.Linea
-              AND fu.Fecha  >= '2025-11-24'   -- <<< SOLO NOCHES DESDE 24-11-2025
+            WHERE fu.Reserva = r.Reserva AND fu.Linea = rd.Linea
             ORDER BY fu.Fecha
             FOR JSON PATH
             ) AS precio_por_noche_json
@@ -2399,7 +2396,7 @@ def casa_consulta():
     params = {}
     bind_list = []
     where_clauses.append("(r.Localizador LIKE 'G-%' OR r.Localizador LIKE 'B-%' OR r.Localizador LIKE 'FT-%')")
-
+    where_clauses.append("(r.FechaSalida > '2025-11-24')")
 
     if isinstance(reservas, list) and reservas:
         where_clauses.append("r.Reserva IN :reservas")
