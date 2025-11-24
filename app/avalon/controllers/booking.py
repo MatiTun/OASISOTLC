@@ -2379,7 +2379,7 @@ def casa_consulta():
             LEFT JOIN MEX_VAL mv  ON mv.Reserva  = fu.Reserva AND mv.Linea  = fu.Linea AND mv.Fecha  = fu.Fecha
             LEFT JOIN MEX_FAC mf  ON mf.Reserva  = fu.Reserva AND mf.Linea  = fu.Linea AND mf.Fecha  = fu.Fecha
             LEFT JOIN EXT_PRE ex  ON ex.Reserva  = fu.Reserva AND ex.Linea  = fu.Linea AND ex.Fecha  = fu.Fecha
-            WHERE fu.Reserva = r.Reserva AND fu.Linea = rd.Linea
+            WHERE fu.Reserva = r.Reserva AND fu.Linea = rd.Linea AND fu.Fecha >= '2025-11-24'
             ORDER BY fu.Fecha
             FOR JSON PATH
             ) AS precio_por_noche_json
