@@ -2083,7 +2083,7 @@ def grupos_consulta():
         bind_list.append(bindparam("reservas", expanding=True))
 
     if hoteles:
-        where_clauses.append("r.HotelFactura IN :hoteles")
+        where_clauses.append("rd.HotelUso IN :hoteles")
         params["hoteles"] = hoteles
         bind_list.append(bindparam("hoteles", expanding=True))
 
