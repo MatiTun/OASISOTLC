@@ -209,3 +209,5 @@ def contratct_account_status_otlc(contrato):
         return JsonResponse(500, msg={'error': str(e)})
 
     return JsonResponse(200, data_json={"Encabezado":resp,"Detalle":resp_detalle}, info={})
+
+##cambio prueba
